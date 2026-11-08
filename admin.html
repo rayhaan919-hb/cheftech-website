@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChefTech - Admin Dashboard</title>
+
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        rel="stylesheet"
+    >
+</head>
+
+<body class="bg-gray-50 min-h-screen text-gray-800">
+
+    <!-- Cloud Setup Banner (shown when Supabase is not configured yet) -->
+    <div id="cloudSetupBanner" class="hidden bg-amber-50 border-b border-amber-200 p-4">
+        <div class="max-w-4xl mx-auto space-y-3">
+            <div class="flex items-center justify-between gap-2">
+                <h2 class="font-bold text-amber-900 text-sm">
+                    <i class="fa-solid fa-cloud mr-1.5"></i> Supabase Cloud Not Configured
+                </h2>
+                <span class="text-xs text-amber-700">Enter your project credentials or set them in <code>config.js</code></span>
+            </div>
+            <form id="cloudConfigForm" class="grid gap-2 sm:grid-cols-3">
+                <input
+                    type="url"
+                    id="supabaseUrlInput"
+                    placeholder="https://your-project.supabase.co"
+                    required
+                    class="px-3 py-2 rounded-xl border border-amber-300 text-xs bg-white"
+                >
+                <input
+                    type="text"
+                    id="supabaseAnonKeyInput"
+                    placeholder="Supabase Anon Public Key (eyJ...)"
+                    required
+                    class="px-3 py-2 rounded-xl border border-amber-300 text-xs bg-white"
+                >
+                <button
+                    type="submit"
+                    class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-2 px-4 rounded-xl"
+                >
+                    Save & Connect
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sign-in gate -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+        <form id="adminLoginForm" class="bg-white rounded-3xl shadow-lg p-8 w-full max-w-sm space-y-4">
+            <h1 class="text-xl font-black text-center">Admin Sign In</h1>
+            <p class="text-xs text-gray-500 text-center">Sign in with an OWNER or MANAGER account</p>
+
+            <input
+                type="email"
+                id="adminEmail"
+                placeholder="Email"
+                required
+                class="w-full px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-4 focus:ring-orange-100"
+            >
+
+            <input
+                type="password"
+                id="adminPassword"
+                placeholder="Password"
+                required
+                class="w-full px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-4 focus:ring-orange-100"
+            >
+
+            <button
+                type="submit"
+                class="w-full bg-gray-900 text-white font-bold py-3 rounded-2xl hover:bg-orange-500 transition-colors"
+            >
+                Sign In
+            </button>
+
+            <p id="adminLoginError" class="text-sm text-red-500 hidden"></p>
+        </form>
+    </div>
+
+    <!-- Access denied -->
+    <div id="deniedScreen" class="hidden min-h-screen flex flex-col items-center justify-center p-4 text-center gap-4">
+        <i class="fa-solid fa-lock text-4xl text-red-400"></i>
+        <h1 class="text-xl font-black">Access Denied</h1>
+        <p class="text-gray-500">Only accounts with the OWNER or MANAGER role in <code>profiles</code> may access this dashboard.</p>
+        <button id="deniedSignOutBtn" class="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-bold hover:bg-orange-500">
+            Sign Out
+        </button>
+    </div>
+
+    <!-- Admin panel -->
+    <div id="adminPanel" class="hidden max-w-7xl mx-auto p-6 space-y-8">
+
+        <div class="flex justify-between items-center flex-wrap gap-3">
+            <div>
+                <h1 class="text-2xl font-black">Admin Dashboard</h1>
+                <p class="text-sm text-gray-500 mt-1">Customers, online orders, coupons, and security settings</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="inline-flex items-center gap-2 text-xs font-semibold bg-white border border-gray-200 px-3 py-2 rounded-full cursor-pointer">
+                    <input type="checkbox" id="requireEmailVerifyToggle" checked class="accent-orange-500">
+                    <span>Require Email Verification at Checkout</span>
+                </label>
+                <button id="refreshAdminDataBtn" title="Refresh customer and order data" class="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200" aria-label="Refresh customer and order data">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button id="adminSignOutBtn" class="text-sm bg-gray-100 px-4 py-2 rounded-full hover:bg-gray-200">
+                    Sign Out
+                </button>
+            </div>
+        </div>
+
+        <!-- Customers -->
+        <section class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+            <div class="flex justify-between items-center mb-4 gap-4">
+                <div>
+                    <h2 class="font-bold text-lg">Customers</h2>
+                    <p id="customersSummary" class="text-sm text-gray-500"></p>
+                </div>
+            </div>
+            <div id="customersTable" class="space-y-3"></div>
+        </section>
+
+        <!-- Orders -->
+        <section class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+            <div class="mb-4">
+                <h2 class="font-bold text-lg">Online Orders</h2>
+                <p id="ordersSummary" class="text-sm text-gray-500"></p>
+            </div>
+            <div id="ordersTable" class="space-y-3"></div>
+        </section>
+
+        <!-- Create coupon -->
+        <form id="couponForm" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 grid gap-4 sm:grid-cols-2">
+            <h2 class="sm:col-span-2 font-bold text-lg">Create Coupon</h2>
+
+            <input
+                type="text"
+                id="couponCodeField"
+                placeholder="Coupon code (e.g. SAVE20)"
+                required
+                class="px-4 py-3 rounded-2xl border border-gray-200 uppercase outline-none focus:ring-4 focus:ring-orange-100"
+            >
+
+            <input
+                type="number"
+                id="couponDiscountField"
+                placeholder="Discount % (1 - 100)"
+                min="1"
+                max="100"
+                required
+                class="px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-4 focus:ring-orange-100"
+            >
+
+            <select
+                id="couponTypeField"
+                class="px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-4 focus:ring-orange-100"
+            >
+                <option value="promo">Promo (public)</option>
+                <option value="loyalty">Loyalty (assigned user)</option>
+            </select>
+
+            <input
+                type="email"
+                id="couponAssignedEmailField"
+                placeholder="Assigned user email (optional)"
+                class="px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-4 focus:ring-orange-100"
+            >
+
+            <input
+                type="number"
+                id="couponMaxUsesField"
+                placeholder="Max uses (optional, promo only)"
+                min="1"
+                class="px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-4 focus:ring-orange-100"
+            >
+
+            <input
+                type="date"
+                id="couponExpiryField"
+                class="px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-4 focus:ring-orange-100"
+            >
+
+            <button
+                type="submit"
+                class="sm:col-span-2 bg-orange-500 text-white font-bold py-3 rounded-2xl hover:bg-orange-600 transition-colors"
+            >
+                Create Coupon
+            </button>
+
+            <p id="couponFormMessage" class="sm:col-span-2 text-sm hidden"></p>
+        </form>
+
+        <!-- Existing coupons -->
+        <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+            <h2 class="font-bold text-lg mb-4">Existing Coupons</h2>
+
+            <div id="couponsTable" class="space-y-2"></div>
+        </div>
+
+        <!-- Banner Management -->
+        <form id="bannerForm" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 grid gap-4 sm:grid-cols-2">
+            <h2 class="sm:col-span-2 font-bold text-lg">Create Banner</h2>
+
+            <div class="sm:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Upload Images (Multiple allowed)</label>
+                <input
+                    type="file"
+                    id="bannerImagesField"
+                    accept="image/*"
+                    multiple
+                    required
+                    class="w-full px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-4 focus:ring-orange-100 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                >
+                <p class="text-xs text-gray-500 mt-1">Images will be automatically compressed for fast loading</p>
+            </div>
+
+            <div id="imagePreviewContainer" class="sm:col-span-2 hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Image Preview</label>
+                <div id="imagePreview" class="grid grid-cols-3 gap-3"></div>
+            </div>
+
+            <input
+                type="text"
+                id="bannerTitleField"
+                placeholder="Title"
+                required
+                class="px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-4 focus:ring-orange-100"
+            >
+
+            <input
+                type="text"
+                id="bannerDescriptionField"
+                placeholder="Description"
+                class="px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-4 focus:ring-orange-100"
+            >
+
+            <input
+                type="text"
+                id="bannerLinkField"
+                placeholder="Link/URL (optional)"
+                class="px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-4 focus:ring-orange-100"
+            >
+
+            <select
+                id="bannerTypeField"
+                class="px-4 py-3 rounded-2xl border border-gray-200 outline-none focus:ring-4 focus:ring-orange-100"
+            >
+                <option value="deal">Deal</option>
+                <option value="discount">Discount</option>
+                <option value="catalogue">Catalogue</option>
+                <option value="promo">Promo</option>
+            </select>
+
+            <div class="flex items-center gap-2">
+                <input type="checkbox" id="bannerActiveField" checked class="w-5 h-5 accent-orange-500">
+                <label for="bannerActiveField" class="text-sm font-medium">Active</label>
+            </div>
+
+            <button
+                type="submit"
+                id="bannerSubmitBtn"
+                class="sm:col-span-2 bg-orange-500 text-white font-bold py-3 rounded-2xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                Create Banner
+            </button>
+
+            <p id="bannerFormMessage" class="sm:col-span-2 text-sm hidden"></p>
+        </form>
+
+        <!-- Existing Banners -->
+        <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+            <h2 class="font-bold text-lg mb-4">Existing Banners</h2>
+
+            <div id="bannersTable" class="space-y-2"></div>
+        </div>
+
+    </div>
+
+    <script type="module" src="adminwebsite.js"></script>
+
+</body>
+
+</html>

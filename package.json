@@ -1,0 +1,25 @@
+{
+  "name": "cheftech-website",
+  "version": "1.0.0",
+  "description": "ChefTech Restaurant Online Ordering Website & Admin Dashboard (Supabase Edition)",
+  "private": true,
+  "scripts": {
+    "build": "tailwindcss -i ./src/tailwind.css -o ./styles.css --minify",
+    "build:css": "tailwindcss -i ./src/tailwind.css -o ./styles.css --minify",
+    "watch:css": "tailwindcss -i ./src/tailwind.css -o ./styles.css --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rayhaan919-hb/cheftech-website.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rayhaan919-hb/cheftech-website/issues"
+  },
+  "homepage": "https://github.com/rayhaan919-hb/cheftech-website#readme",
+  "license": "SEE LICENSE IN LICENSE",
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17"
+  }
+}

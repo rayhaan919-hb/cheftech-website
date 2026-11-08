@@ -1,0 +1,2304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="theme-color"
+        content="#f97316"
+    >
+
+    <title>
+        ChefTech Restaurant - Order Online
+    </title>
+
+    <!-- Optimized Tailwind CSS (local build) -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Font Awesome -->
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        rel="stylesheet"
+    >
+
+</head>
+
+
+<body
+    class="font-sans text-gray-800 antialiased pb-16 md:pb-0"
+>
+
+
+    <!-- =========================================================
+         SCROLL PROGRESS
+    ========================================================== -->
+
+    <div
+        id="scrollProgress"
+        class="fixed top-0 left-0 right-0 h-0.5 bg-orange-500 z-[70] scroll-top-progress"
+    ></div>
+
+
+    <!-- =========================================================
+         NAVBAR
+    ========================================================== -->
+
+    <nav
+        id="mainNav"
+        class="
+            fixed
+            top-0
+            left-0
+            right-0
+            bg-white/80
+            backdrop-blur-xl
+            border-b
+            border-white/60
+            shadow-sm
+            z-50
+            transition-all
+            duration-300
+        "
+    >
+
+        <div
+            class="
+                max-w-7xl
+                mx-auto
+                px-4
+                sm:px-6
+                lg:px-8
+            "
+        >
+
+            <div
+                class="
+                    flex
+                    justify-between
+                    h-16
+                    items-center
+                "
+            >
+
+
+                <!-- BRAND -->
+
+                <button
+                    id="brandBtn"
+                    class="
+                        flex-shrink-0
+                        flex
+                        items-center
+                        gap-2
+                        pressable
+                    "
+                    aria-label="Go to top"
+                >
+
+                    <span
+                        class="
+                            w-10
+                            h-10
+                            rounded-2xl
+                            bg-orange-500
+                            text-white
+                            grid
+                            place-items-center
+                            shadow-glow
+                        "
+                    >
+
+                        <i
+                            class="fa-solid fa-utensils"
+                        ></i>
+
+                    </span>
+
+
+                    <span
+                        class="
+                            font-extrabold
+                            text-lg
+                            sm:text-xl
+                            tracking-tight
+                        "
+                    >
+                        ChefTech
+                    </span>
+
+                </button>
+
+
+                <!-- RIGHT SIDE -->
+
+                <div
+                    class="
+                        flex
+                        items-center
+                        gap-2
+                        sm:gap-4
+                    "
+                >
+
+                    <!-- LOGIN -->
+
+                    <button
+                        id="trackOrderBtn"
+                        class="
+                            text-xs
+                            bg-blue-50
+                            text-blue-600
+                            px-3
+                            py-1.5
+                            rounded-full
+                            hover:bg-blue-100
+                            transition-colors
+                            pressable
+                        "
+                    >
+                        <i class="fa-solid fa-magnifying-glass sm:mr-1"></i>
+                        <span class="hidden sm:inline">Track Order</span>
+                    </button>
+
+                    <button
+                        id="loginBtn"
+                        class="
+                            text-sm
+                            font-semibold
+                            text-gray-600
+                            hover:text-orange-500
+                            transition-colors
+                            pressable
+                        "
+                        aria-label="Login or Register"
+                    >
+                        <i class="fa-solid fa-right-to-bracket sm:hidden"></i>
+                        <span class="hidden sm:inline">Login / Register</span>
+                    </button>
+
+
+                    <!-- USER PROFILE -->
+
+                    <div
+                        id="userProfile"
+                        class="
+                            hidden
+                            items-center
+                            gap-3
+                        "
+                    >
+
+                        <span
+                            id="userNameDisplay"
+                            class="
+                                hidden
+                                sm:inline
+                                text-sm
+                                font-semibold
+                                text-gray-700
+                            "
+                        ></span>
+
+
+                        <button
+                            id="pastOrdersBtn"
+                            class="
+                                text-xs
+                                bg-gray-100
+                                px-3
+                                py-1.5
+                                rounded-full
+                                hover:bg-gray-200
+                                transition-colors
+                                pressable
+                            "
+                        >
+                            Past Orders
+                        </button>
+
+                        <button
+                            id="myCouponsBtn"
+                            class="
+                                text-xs
+                                bg-orange-50
+                                text-orange-600
+                                px-3
+                                py-1.5
+                                rounded-full
+                                hover:bg-orange-100
+                                transition-colors
+                                pressable
+                            "
+                        >
+                            <i class="fa-solid fa-ticket mr-1"></i>My Coupons
+                        </button>
+
+
+                        <button
+                            id="logoutBtn"
+                            class="
+                                w-9
+                                h-9
+                                rounded-full
+                                bg-red-50
+                                text-red-500
+                                hover:bg-red-100
+                                transition-colors
+                                pressable
+                            "
+                            aria-label="Log out"
+                        >
+
+                            <i
+                                class="
+                                    fa-solid
+                                    fa-right-from-bracket
+                                "
+                            ></i>
+
+                        </button>
+
+                    </div>
+
+
+                    <!-- CART -->
+
+                    <button
+                        id="cartBtn"
+                        class="
+                            relative
+                            p-3
+                            bg-orange-500
+                            text-white
+                            rounded-2xl
+                            hover:bg-orange-600
+                            transition-all
+                            duration-200
+                            shadow-glow
+                            pressable
+                        "
+                        aria-label="Open cart"
+                    >
+
+                        <i
+                            class="
+                                fa-solid
+                                fa-cart-shopping
+                            "
+                        ></i>
+
+
+                        <span
+                            id="cartCount"
+                            class="
+                                absolute
+                                -top-1.5
+                                -right-1.5
+                                bg-red-600
+                                text-white
+                                text-xs
+                                font-bold
+                                rounded-full
+                                h-5
+                                w-5
+                                flex
+                                items-center
+                                justify-center
+                                border-2
+                                border-white
+                            "
+                        >
+                            0
+                        </span>
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+
+    <!-- =========================================================
+         ADVERTISEMENT BANNER (CAROUSEL)
+    ========================================================== -->
+
+    <div
+        id="promoBannerContainer"
+        class="
+            relative
+            pt-20
+            px-4
+            sm:px-6
+            lg:px-8
+            max-w-7xl
+            mx-auto
+            hidden
+        "
+    >
+        <div class="relative overflow-hidden rounded-3xl shadow-lg border border-orange-100 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 group">
+
+            <!-- Slides wrapper -->
+            <div id="bannerSlides" class="relative min-h-[160px] sm:min-h-[220px] md:min-h-[280px] w-full flex transition-transform duration-500 ease-in-out">
+                <!-- Banner slides will be rendered dynamically via JS -->
+            </div>
+
+            <!-- Carousel Controls -->
+            <button
+                id="bannerPrevBtn"
+                class="
+                    absolute
+                    left-3
+                    top-1/2
+                    -translate-y-1/2
+                    w-9
+                    h-9
+                    sm:w-11
+                    sm:h-11
+                    rounded-full
+                    bg-white/80
+                    hover:bg-white
+                    text-gray-800
+                    flex
+                    items-center
+                    justify-center
+                    shadow-md
+                    backdrop-blur-sm
+                    md:opacity-0
+                    group-hover:opacity-100
+                    transition-opacity
+                    duration-200
+                    z-10
+                "
+                aria-label="Previous Slide"
+            >
+                <i class="fa-solid fa-chevron-left text-sm sm:text-base"></i>
+            </button>
+
+            <button
+                id="bannerNextBtn"
+                class="
+                    absolute
+                    right-3
+                    top-1/2
+                    -translate-y-1/2
+                    w-9
+                    h-9
+                    sm:w-11
+                    sm:h-11
+                    rounded-full
+                    bg-white/80
+                    hover:bg-white
+                    text-gray-800
+                    flex
+                    items-center
+                    justify-center
+                    shadow-md
+                    backdrop-blur-sm
+                    md:opacity-0
+                    group-hover:opacity-100
+                    transition-opacity
+                    duration-200
+                    z-10
+                "
+                aria-label="Next Slide"
+            >
+                <i class="fa-solid fa-chevron-right text-sm sm:text-base"></i>
+            </button>
+
+            <!-- Navigation Dots -->
+            <div
+                id="bannerDots"
+                class="
+                    absolute
+                    bottom-3
+                    left-1/2
+                    -translate-x-1/2
+                    flex
+                    items-center
+                    gap-2
+                    z-10
+                    bg-black/20
+                    px-3
+                    py-1.5
+                    rounded-full
+                    backdrop-blur-xs
+                "
+            >
+                <!-- Dots rendered dynamically -->
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- =========================================================
+         HERO
+    ========================================================== -->
+
+    <header
+        class="
+            relative
+            pt-28
+            pb-14
+            px-4
+            sm:px-6
+            lg:px-8
+            max-w-7xl
+            mx-auto
+            text-center
+            overflow-hidden
+        "
+    >
+
+        <!-- Grid -->
+
+        <div
+            class="
+                hero-grid
+                absolute
+                inset-x-0
+                top-0
+                h-[340px]
+                pointer-events-none
+            "
+        ></div>
+
+
+        <!-- Animated Orbs -->
+
+        <div
+            class="
+                hero-orb
+                w-48
+                h-48
+                bg-orange-200/45
+                -left-20
+                top-16
+                animate-pulse-soft
+            "
+        ></div>
+
+
+        <div
+            class="
+                hero-orb
+                w-56
+                h-56
+                bg-amber-200/35
+                -right-20
+                top-4
+                animate-float
+            "
+        ></div>
+
+
+        <!-- Hero Content -->
+
+        <div
+            class="
+                relative
+                z-10
+                reveal
+                is-visible
+            "
+        >
+
+            <!-- Badge -->
+
+            <div
+                class="
+                    inline-flex
+                    items-center
+                    gap-2
+                    px-4
+                    py-2
+                    rounded-full
+                    bg-white/80
+                    border
+                    border-orange-100
+                    shadow-soft
+                    text-sm
+                    font-semibold
+                    text-orange-600
+                    mb-5
+                "
+            >
+
+                <span
+                    class="
+                        w-2
+                        h-2
+                        rounded-full
+                        bg-orange-500
+                        animate-pulse
+                    "
+                ></span>
+
+                Freshly prepared • Fast delivery
+
+            </div>
+
+
+            <!-- Heading -->
+
+            <h1
+                class="
+                    text-4xl
+                    sm:text-5xl
+                    lg:text-6xl
+                    font-black
+                    text-gray-900
+                    tracking-tight
+                    mb-5
+                    leading-[1.05]
+                "
+            >
+
+                Cravings, Delivered
+
+                <span
+                    class="
+                        text-transparent
+                        bg-clip-text
+                        bg-gradient-to-r
+                        from-orange-500
+                        to-amber-500
+                    "
+                >
+                    Fast.
+                </span>
+
+            </h1>
+
+
+            <!-- Description -->
+
+            <p
+                class="
+                    text-lg
+                    text-gray-500
+                    max-w-2xl
+                    mx-auto
+                    leading-relaxed
+                "
+            >
+                Explore our menu featuring
+                Karahis, Sajji, Burgers,
+                BBQ and more.
+                Choose your favourites
+                and order in seconds.
+            </p>
+
+
+            <!-- Hero Buttons -->
+
+            <div
+                class="
+                    mt-7
+                    flex
+                    flex-wrap
+                    items-center
+                    justify-center
+                    gap-3
+                "
+            >
+
+                <button
+                    id="browseMenuBtn"
+                    class="
+                        px-5
+                        py-3
+                        rounded-2xl
+                        bg-gray-900
+                        text-white
+                        font-bold
+                        shadow-lg
+                        hover:-translate-y-0.5
+                        hover:shadow-xl
+                        transition-all
+                        pressable
+                    "
+                >
+
+                    Browse Menu
+
+                    <i
+                        class="
+                            fa-solid
+                            fa-arrow-down
+                            ml-2
+                            text-orange-400
+                        "
+                    ></i>
+
+                </button>
+
+
+                <div
+                    class="
+                        px-4
+                        py-3
+                        rounded-2xl
+                        bg-white/75
+                        border
+                        border-gray-200
+                        text-gray-600
+                        text-sm
+                        shadow-soft
+                    "
+                >
+
+                    <i
+                        class="
+                            fa-solid
+                            fa-bolt
+                            text-orange-500
+                            mr-1
+                        "
+                    ></i>
+
+                    Smooth online ordering
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <!-- =========================================================
+         STICKY CATEGORY BAR
+    ========================================================== -->
+
+    <div
+        id="categoryBar"
+        class="
+            sticky
+            top-16
+            bg-white/85
+            backdrop-blur-xl
+            z-40
+            border-y
+            border-gray-200/80
+            shadow-sm
+            transition-all
+            duration-300
+        "
+    >
+
+        <div
+            class="
+                max-w-7xl
+                mx-auto
+                px-4
+                sm:px-6
+                lg:px-8
+                py-3
+            "
+        >
+
+            <div
+                id="categoryContainer"
+                class="
+                    flex
+                    space-x-3
+                    overflow-x-auto
+                    no-scrollbar
+                "
+            >
+
+                <!-- Categories generated by JavaScript -->
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         MENU
+    ========================================================== -->
+
+    <main
+        id="menuSection"
+        class="
+            max-w-7xl
+            mx-auto
+            px-4
+            sm:px-6
+            lg:px-8
+            py-8
+            min-h-screen
+        "
+    >
+
+        <div
+            id="menuGrid"
+            class="
+                grid
+                grid-cols-1
+                sm:grid-cols-2
+                md:grid-cols-3
+                lg:grid-cols-4
+                gap-6
+            "
+        >
+
+            <!-- Menu generated by JavaScript -->
+
+        </div>
+
+    </main>
+
+
+    <!-- =========================================================
+         ABOUT / OWNER / REVIEWS
+    ========================================================== -->
+
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+        <div class="grid gap-6 sm:gap-8 lg:grid-cols-2">
+            <div class="rounded-[1.5rem] sm:rounded-[2rem] border border-orange-100 bg-white p-4 sm:p-6 lg:p-8 shadow-soft">
+                <p class="text-[10px] sm:text-xs font-bold uppercase tracking-[.20em] text-orange-500 mb-2 sm:mb-3">About Us</p>
+                <h2 class="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-3 sm:mb-4">Serving comfort food with heart and flavor.</h2>
+                <p class="text-sm sm:text-base leading-7 sm:leading-8 text-gray-600 mb-4">
+                    ChefTech brings together bold flavors, generous portions, and warm hospitality in one place.
+                    From family meals to late-night cravings, we cook every order with the same care we would serve at our own table.
+                </p>
+                <div class="grid gap-3 sm:grid-cols-3">
+                    <div class="rounded-2xl bg-orange-50 p-3 sm:p-4">
+                        <div class="text-xl sm:text-2xl font-black text-orange-600">4.9/5</div>
+                        <div class="text-xs sm:text-sm text-gray-600">Customer rating</div>
+                    </div>
+                    <div class="rounded-2xl bg-amber-50 p-3 sm:p-4">
+                        <div class="text-xl sm:text-2xl font-black text-amber-600">25 min</div>
+                        <div class="text-xs sm:text-sm text-gray-600">Fast delivery</div>
+                    </div>
+                    <div class="rounded-2xl bg-emerald-50 p-3 sm:p-4">
+                        <div class="text-xl sm:text-2xl font-black text-emerald-600">Fresh</div>
+                        <div class="text-xs sm:text-sm text-gray-600">Made daily</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounde  d-[1.5rem] sm:rounded-[2rem] border border-orange-100 bg-gradient-to-br from-orange-500 to-amber-500 p-4 sm:p-6 lg:p-8 text-white shadow-glow">
+                <p class="text-[10px] sm:text-xs font-bold uppercase tracking-[.20em] text-orange-100 mb-2 sm:mb-3">Owner’s Message</p>
+                <h2 class="text-2xl sm:text-3xl lg:text-4xl font-black mb-3 sm:mb-4">A taste you can trust.</h2>
+                <p class="text-sm sm:text-base leading-7 sm:leading-8 text-orange-50/95">
+                    Thank you for choosing ChefTech. Our goal is simple: bring honest, delicious food to your table with the hospitality and quality you deserve. Every recipe is prepared with dedication, and every order is treated like a personal invitation to share a great meal with family and friends.
+                </p>
+                <div class="mt-5 sm:mt-6 flex items-center gap-3">
+                    <div class="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white/20 text-base sm:text-lg font-black">CT</div>
+                    <div>
+                        <div class="text-sm sm:text-base font-bold">ChefTech Team</div>
+                        <div class="text-xs sm:text-sm text-orange-100">Management</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 sm:mt-12 rounded-[1.5rem] sm:rounded-[2rem] border border-gray-200 bg-white p-4 sm:p-6 lg:p-8 shadow-soft">
+            <div class="flex flex-col gap-4 sm:gap-5 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <p class="text-[10px] sm:text-xs font-bold uppercase tracking-[.20em] text-orange-500 mb-2">Customer Reviews</p>
+                    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900">Loved by our local community.</h2>
+                </div>
+                <a
+                    href="https://maps.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center justify-center gap-2 rounded-full bg-amber-100 px-3 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-amber-700 hover:bg-amber-200 transition-colors"
+                >
+                    <span>★★★★★</span>
+                    <span>Find Us on Google Maps</span>
+                </a>
+            </div>
+
+            <div class="mt-6 sm:mt-8 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+                <div class="overflow-hidden rounded-[1.25rem] sm:rounded-[1.75rem] border border-gray-200 bg-gradient-to-br from-sky-50 via-white to-orange-50 p-2 sm:p-4">
+                    <div class="overflow-hidden rounded-[1rem] sm:rounded-[1.5rem] border border-orange-100 bg-white/80 shadow-soft">
+                        <iframe
+                            src="https://www.google.com/maps?q=restaurant&output=embed"
+                            loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade"
+                            allowfullscreen
+                            class="h-[220px] sm:h-[320px] w-full border-0"
+                        ></iframe>
+                    </div>
+                </div>
+
+                <div class="space-y-4 sm:space-y-5">
+                    <article class="rounded-2xl sm:rounded-3xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
+                        <div class="mb-3 text-amber-500 text-base sm:text-lg">★★★★★</div>
+                        <p class="text-sm sm:text-base text-gray-700 leading-7">"The food was fresh, hot, and packed with flavor. The burgers and fries were absolutely delicious!"</p>
+                        <div class="mt-4 sm:mt-5 flex items-center justify-between text-xs sm:text-sm">
+                            <span class="font-bold text-gray-900">Alex M.</span>
+                            <span class="text-gray-500">Verified Customer</span>
+                        </div>
+                    </article>
+
+                    <article class="rounded-2xl sm:rounded-3xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
+                        <div class="mb-3 text-amber-500 text-base sm:text-lg">★★★★★</div>
+                        <p class="text-sm sm:text-base text-gray-700 leading-7">"Fast delivery and amazing customer service. The ordering process was smooth and seamless."</p>
+                        <div class="mt-4 sm:mt-5 flex items-center justify-between text-xs sm:text-sm">
+                            <span class="font-bold text-gray-900">Sarah T.</span>
+                            <span class="text-gray-500">Verified Customer</span>
+                        </div>
+                    </article>
+
+                    <article class="rounded-2xl sm:rounded-3xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
+                        <div class="mb-3 text-amber-500 text-base sm:text-lg">★★★★★</div>
+                        <p class="text-sm sm:text-base text-gray-700 leading-7">"Great taste, high quality, and reasonable prices. This is now our favorite go-to spot for takeaway."</p>
+                        <div class="mt-4 sm:mt-5 flex items-center justify-between text-xs sm:text-sm">
+                            <span class="font-bold text-gray-900">David L.</span>
+                            <span class="text-gray-500">Verified Customer</span>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- =========================================================
+         AUTH MODAL
+    ========================================================== -->
+
+    <div
+        id="authModal"
+        class="
+            modal-backdrop
+            fixed
+            inset-0
+            bg-black/55
+            z-[60]
+            flex
+            items-center
+            justify-center
+            backdrop-blur-md
+            p-4
+        "
+        aria-hidden="true"
+    >
+
+        <div
+            class="
+                modal-panel
+                bg-white
+                rounded-3xl
+                shadow-2xl
+                w-full
+                max-w-md
+                p-7
+                sm:p-8
+                relative
+            "
+        >
+
+            <!-- Decorative Glow -->
+
+            <div
+                class="
+                    absolute
+                    -top-16
+                    -right-10
+                    w-32
+                    h-32
+                    rounded-full
+                    bg-orange-200/30
+                    blur-2xl
+                    pointer-events-none
+                "
+            ></div>
+
+
+            <!-- Heading -->
+
+            <div
+                class="
+                    flex
+                    justify-between
+                    items-center
+                    mb-6
+                    relative
+                "
+            >
+
+                <div>
+
+                    <p
+                        class="
+                            text-xs
+                            font-bold
+                            uppercase
+                            tracking-[.18em]
+                            text-orange-500
+                            mb-1
+                        "
+                    >
+                        ChefTech
+                    </p>
+
+                    <h2
+                        id="authTitle"
+                        class="
+                            text-2xl
+                            font-bold
+                            text-gray-800
+                        "
+                    >
+                        Welcome Back
+                    </h2>
+
+                </div>
+
+
+                <button
+                    id="closeAuthModal"
+                    class="
+                        w-10
+                        h-10
+                        rounded-full
+                        bg-gray-100
+                        text-gray-400
+                        hover:text-gray-700
+                        hover:bg-gray-200
+                        transition-all
+                        pressable
+                    "
+                    aria-label="Close"
+                >
+
+                    <i
+                        class="
+                            fa-solid
+                            fa-xmark
+                            text-xl
+                        "
+                    ></i>
+
+                </button>
+
+            </div>
+
+
+            <!-- Auth Form -->
+
+            <form
+                id="authForm"
+                class="space-y-4"
+            >
+
+                <!-- Email -->
+
+                <label class="block">
+
+                    <span
+                        class="
+                            text-xs
+                            font-semibold
+                            text-gray-500
+                            mb-1.5
+                            block
+                        "
+                    >
+                        Email
+                    </span>
+
+                    <input
+                        type="email"
+                        id="authEmail"
+                        placeholder="you@example.com"
+                        required
+                        class="
+                            w-full
+                            px-4
+                            py-3.5
+                            rounded-2xl
+                            border
+                            border-gray-200
+                            bg-gray-50/70
+                            focus:bg-white
+                            focus:ring-4
+                            focus:ring-orange-100
+                            focus:border-orange-400
+                            outline-none
+                            transition-all
+                        "
+                    >
+
+                </label>
+
+
+                <!-- Password -->
+
+                <label class="block">
+
+                    <span
+                        class="
+                            text-xs
+                            font-semibold
+                            text-gray-500
+                            mb-1.5
+                            block
+                        "
+                    >
+                        Password
+                    </span>
+
+                    <input
+                        type="password"
+                        id="authPassword"
+                        placeholder="Your password"
+                        required
+                        class="
+                            w-full
+                            px-4
+                            py-3.5
+                            rounded-2xl
+                            border
+                            border-gray-200
+                            bg-gray-50/70
+                            focus:bg-white
+                            focus:ring-4
+                            focus:ring-orange-100
+                            focus:border-orange-400
+                            outline-none
+                            transition-all
+                        "
+                    >
+
+                </label>
+
+
+                <!-- Submit -->
+
+                <button
+                    type="submit"
+                    id="authSubmitBtn"
+                    class="
+                        w-full
+                        bg-orange-500
+                        text-white
+                        font-bold
+                        py-3.5
+                        rounded-2xl
+                        hover:bg-orange-600
+                        transition-all
+                        shadow-glow
+                        hover:-translate-y-0.5
+                        pressable
+                    "
+                >
+                    Sign In
+                </button>
+
+            </form>
+
+
+            <!-- Toggle -->
+
+            <p
+                class="
+                    text-center
+                    text-sm
+                    text-gray-500
+                    mt-5
+                "
+            >
+
+                <span
+                    id="authToggleText"
+                >
+                    New customer?
+                </span>
+
+                <a
+                    href="#"
+                    id="toggleAuthMode"
+                    class="
+                        text-orange-500
+                        font-semibold
+                        hover:underline
+                    "
+                >
+                    Create an account
+                </a>
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         CART / CHECKOUT MODAL
+    ========================================================== -->
+
+    <div
+        id="cartModal"
+        class="
+            modal-backdrop
+            fixed
+            inset-0
+            bg-black/55
+            z-[60]
+            flex
+            items-center
+            justify-center
+            backdrop-blur-md
+            p-4
+        "
+        aria-hidden="true"
+    >
+
+        <div
+            class="
+                modal-panel
+                bg-white
+                rounded-3xl
+                shadow-2xl
+                w-full
+                max-w-lg
+                max-h-[88vh]
+                flex
+                flex-col
+                overflow-hidden
+            "
+        >
+
+            <!-- Header -->
+
+            <div
+                class="
+                    flex
+                    justify-between
+                    items-center
+                    p-6
+                    border-b
+                    border-gray-100
+                "
+            >
+
+                <div>
+
+                    <p
+                        class="
+                            text-xs
+                            font-bold
+                            uppercase
+                            tracking-[.18em]
+                            text-orange-500
+                        "
+                    >
+                        Checkout
+                    </p>
+
+                    <h2
+                        class="
+                            text-xl
+                            font-bold
+                            text-gray-800
+                        "
+                    >
+                        Your Order
+                    </h2>
+
+                </div>
+
+
+                <button
+                    id="closeCartModal"
+                    class="
+                        w-10
+                        h-10
+                        rounded-full
+                        bg-gray-100
+                        text-gray-400
+                        hover:text-gray-700
+                        hover:bg-gray-200
+                        transition-all
+                        pressable
+                    "
+                    aria-label="Close cart"
+                >
+
+                    <i
+                        class="
+                            fa-solid
+                            fa-xmark
+                            text-xl
+                        "
+                    ></i>
+
+                </button>
+
+            </div>
+
+
+            <!-- Scrollable Content -->
+
+            <div
+                class="
+                    flex-1
+                    min-h-0
+                    overflow-y-auto
+                "
+            >
+
+                <!-- Cart Items -->
+
+                <div
+                    id="cartItemsList"
+                    class="
+                        p-6
+                        space-y-3
+                    "
+                >
+
+                </div>
+
+
+                <!-- Checkout Fields -->
+
+                <div
+                    class="
+                        p-6
+                        border-t
+                        border-gray-100
+                        space-y-3
+                        bg-gray-50/90
+                    "
+                >
+
+                    <!-- Coupon Code -->
+
+                    <div class="flex gap-2">
+
+                        <input
+                            type="text"
+                            id="couponCodeInput"
+                            placeholder="Coupon code"
+                            class="
+                                flex-1
+                                px-4
+                                py-2.5
+                                rounded-2xl
+                                border
+                                border-gray-200
+                                uppercase
+                                focus:ring-4
+                                focus:ring-orange-100
+                                focus:border-orange-400
+                                outline-none
+                                transition-all
+                            "
+                        >
+
+                        <button
+                            type="button"
+                            id="applyCouponBtn"
+                            class="
+                                px-4
+                                py-2.5
+                                rounded-2xl
+                                bg-gray-900
+                                text-white
+                                font-bold
+                                text-sm
+                                hover:bg-orange-500
+                                transition-colors
+                                pressable
+                            "
+                        >
+                            Apply
+                        </button>
+
+                    </div>
+
+                    <p
+                        id="couponMessage"
+                        class="text-xs font-semibold hidden"
+                    ></p>
+
+                    <!-- Subtotal / Discount / Total -->
+
+                    <div
+                        id="cartDiscountRow"
+                        class="flex justify-between text-sm font-semibold text-green-600 hidden"
+                    >
+
+                        <span>
+                            Discount
+                        </span>
+
+                        <span id="cartDiscountDisplay">
+                            -Rs. 0
+                        </span>
+
+                    </div>
+
+                    <div
+                        class="
+                            flex
+                            justify-between
+                            font-black
+                            text-xl
+                            text-gray-900
+                        "
+                    >
+
+                        <span>
+                            Total
+                        </span>
+
+                        <span
+                            id="cartTotalDisplay"
+                        >
+                            Rs. 0
+                        </span>
+
+                    </div>
+
+
+                    <!-- Order Type -->
+
+                    <div
+                        class="
+                            flex
+                            gap-2
+                            p-1
+                            rounded-2xl
+                            bg-gray-200/70
+                        "
+                    >
+
+                        <button
+                            type="button"
+                            id="orderTypeDelivery"
+                            class="
+                                flex-1
+                                py-2.5
+                                rounded-xl
+                                text-sm
+                                font-semibold
+                                bg-orange-500
+                                text-white
+                                shadow-sm
+                                transition-all
+                            "
+                        >
+                            Delivery
+                        </button>
+
+
+                        <button
+                            type="button"
+                            id="orderTypeTakeaway"
+                            class="
+                                flex-1
+                                py-2.5
+                                rounded-xl
+                                text-sm
+                                font-semibold
+                                text-gray-600
+                                transition-all
+                            "
+                        >
+                            Takeaway
+                        </button>
+
+                    </div>
+
+
+                    <!-- Name -->
+
+                    <input
+                        type="text"
+                        id="checkoutName"
+                        placeholder="Your Name"
+                        class="
+                            w-full
+                            px-4
+                            py-3
+                            rounded-2xl
+                            border
+                            border-gray-200
+                            focus:ring-4
+                            focus:ring-orange-100
+                            focus:border-orange-400
+                            outline-none
+                            transition-all
+                        "
+                    >
+
+
+                    <!-- Phone -->
+
+                    <input
+                        type="tel"
+                        id="checkoutPhone"
+                        placeholder="Phone Number"
+                        class="
+                            w-full
+                            px-4
+                            py-3
+                            rounded-2xl
+                            border
+                            border-gray-200
+                            focus:ring-4
+                            focus:ring-orange-100
+                            focus:border-orange-400
+                            outline-none
+                            transition-all
+                        "
+                    >
+
+
+                    <!-- Address -->
+
+                    <input
+                        type="text"
+                        id="checkoutAddress"
+                        placeholder="Delivery Address"
+                        class="
+                            w-full
+                            px-4
+                            py-3
+                            rounded-2xl
+                            border
+                            border-gray-200
+                            focus:ring-4
+                            focus:ring-orange-100
+                            focus:border-orange-400
+                            outline-none
+                            transition-all
+                        "
+                    >
+
+                    <div id="deliveryInfoNote" class="hidden mt-2 text-xs text-gray-500 bg-orange-50 border border-orange-100 rounded-xl px-3 py-2 space-y-0.5">
+                        <div><i class="fa-solid fa-circle-info text-orange-400 mr-1"></i>Minimum order for delivery: <span class="font-semibold text-gray-700">Rs. 500</span></div>
+                        <div><i class="fa-solid fa-motorcycle text-orange-400 mr-1"></i>Delivery charges vary by location and will be confirmed by our team.</div>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Sticky Footer -->
+
+            <div
+                class="
+                    p-4
+                    sm:p-6
+                    border-t
+                    border-gray-100
+                    bg-white
+                "
+            >
+
+                <button
+                    type="button"
+                    id="placeOrderBtn"
+                    class="
+                        order-btn
+                        w-full
+                        h-14
+                        bg-orange-500
+                        text-white
+                        font-bold
+                        rounded-2xl
+                        hover:bg-orange-600
+                        transition-all
+                        shadow-glow
+                        hover:-translate-y-0.5
+                        pressable
+                    "
+                >
+
+                    <span class="btn-text">
+                        Place Order
+                        <i
+                            class="
+                                fa-solid
+                                fa-arrow-right
+                                ml-2
+                            "
+                        ></i>
+                    </span>
+
+                    <span class="spinner"></span>
+
+                    <div class="success-box">
+                        <svg class="checkmark" viewBox="0 0 52 52">
+                            <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                            <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                        </svg>
+                        <span class="success-text">Order Placed!</span>
+                    </div>
+
+                    <div class="confetti">
+                        <span></span><span></span><span></span>
+                        <span></span><span></span><span></span>
+                    </div>
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         FLOATING CART
+    ========================================================== -->
+
+    <div
+        id="floatingCart"
+        class="
+            floating-cart
+            fixed
+            bottom-5
+            right-4
+            sm:right-6
+            z-40
+            w-[calc(100vw-2rem)]
+            sm:w-80
+            max-w-sm
+            bg-white/95
+            backdrop-blur-xl
+            rounded-3xl
+            shadow-2xl
+            border
+            border-gray-100
+            flex
+            flex-col
+            max-h-[70vh]
+            overflow-hidden
+        "
+    >
+
+        <!-- Cart Header -->
+
+        <div
+            class="
+                flex
+                justify-between
+                items-center
+                px-4
+                py-3
+                border-b
+                border-gray-100
+            "
+        >
+
+            <span
+                class="
+                    font-bold
+                    text-gray-800
+                "
+            >
+
+                <i
+                    class="
+                        fa-solid
+                        fa-cart-shopping
+                        text-orange-500
+                        mr-1
+                    "
+                ></i>
+
+                <span
+                    id="floatingCartCount"
+                >
+                    0
+                </span>
+
+                items
+
+            </span>
+
+
+            <span
+                id="floatingCartTotal"
+                class="
+                    font-black
+                    text-gray-900
+                "
+            >
+                Rs. 0
+            </span>
+
+        </div>
+
+
+        <!-- Cart Items -->
+
+        <div
+            id="floatingCartItems"
+            class="
+                p-3
+                space-y-2
+                overflow-y-auto
+                flex-1
+            "
+        ></div>
+
+
+        <!-- Checkout Button -->
+
+        <div
+            class="
+                p-3
+                border-t
+                border-gray-100
+            "
+        >
+
+            <button
+                id="floatingCheckoutBtn"
+                class="
+                    w-full
+                    bg-gray-900
+                    text-white
+                    font-bold
+                    py-3
+                    rounded-2xl
+                    hover:bg-orange-500
+                    transition-all
+                    shadow-lg
+                    pressable
+                "
+            >
+                Checkout
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         TOAST NOTIFICATION
+    ========================================================== -->
+
+    <div
+        id="toast"
+        class="
+            toast
+            fixed
+            top-20
+            right-4
+            sm:right-6
+            z-[80]
+            bg-gray-900
+            text-white
+            px-4
+            py-3
+            rounded-2xl
+            shadow-2xl
+            flex
+            items-center
+            gap-3
+            max-w-xs
+        "
+    >
+
+        <span
+            id="toastIcon"
+            class="
+                w-8
+                h-8
+                rounded-xl
+                bg-orange-500
+                grid
+                place-items-center
+                shrink-0
+            "
+        >
+            <i
+                class="fa-solid fa-check"
+            ></i>
+        </span>
+
+
+        <span
+            id="toastMessage"
+            class="
+                text-sm
+                font-semibold
+            "
+        >
+            Added to cart
+        </span>
+
+    </div>
+
+
+    <!-- =========================================================
+         PAST ORDERS MODAL
+    ========================================================== -->
+
+    <div
+        id="pastOrdersModal"
+        class="
+            modal-backdrop
+            fixed
+            inset-0
+            bg-black/55
+            z-[60]
+            flex
+            items-center
+            justify-center
+            backdrop-blur-md
+            p-4
+            hidden
+        "
+        aria-hidden="true"
+    >
+
+        <div
+            class="
+                modal-panel
+                bg-white
+                rounded-3xl
+                shadow-2xl
+                w-full
+                max-w-lg
+                max-h-[88vh]
+                flex
+                flex-col
+                overflow-hidden
+            "
+        >
+
+            <div
+                class="
+                    flex
+                    justify-between
+                    items-center
+                    p-6
+                    border-b
+                    border-gray-100
+                "
+            >
+
+                <h2 class="text-xl font-bold text-gray-800">
+                    Past Orders
+                </h2>
+
+                <button
+                    id="closePastOrdersModal"
+                    class="
+                        w-10
+                        h-10
+                        rounded-full
+                        bg-gray-100
+                        text-gray-400
+                        hover:text-gray-700
+                        hover:bg-gray-200
+                        transition-all
+                        pressable
+                    "
+                    aria-label="Close past orders"
+                >
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+
+            </div>
+
+            <div
+                id="pastOrdersList"
+                class="
+                    p-6
+                    space-y-3
+                    overflow-y-auto
+                    flex-1
+                "
+            ></div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         MY COUPONS MODAL
+    ========================================================== -->
+
+    <div
+        id="myCouponsModal"
+        class="
+            modal-backdrop
+            fixed
+            inset-0
+            bg-black/55
+            z-[60]
+            flex
+            items-center
+            justify-center
+            backdrop-blur-md
+            p-4
+            hidden
+        "
+        aria-hidden="true"
+    >
+
+        <div
+            class="
+                modal-panel
+                bg-white
+                rounded-3xl
+                shadow-2xl
+                w-full
+                max-w-lg
+                max-h-[88vh]
+                flex
+                flex-col
+                overflow-hidden
+            "
+        >
+
+            <div
+                class="
+                    flex
+                    justify-between
+                    items-center
+                    p-6
+                    border-b
+                    border-gray-100
+                "
+            >
+                <h2 class="text-xl font-bold text-gray-800">
+                    <i class="fa-solid fa-ticket text-orange-500 mr-2"></i>My Coupons
+                </h2>
+                <button
+                    id="closeMyCouponsModal"
+                    class="
+                        w-10
+                        h-10
+                        rounded-full
+                        bg-gray-100
+                        text-gray-400
+                        hover:text-gray-700
+                        hover:bg-gray-200
+                        transition-all
+                        pressable
+                    "
+                    aria-label="Close"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div
+                id="myCouponsContent"
+                class="flex-1 overflow-y-auto p-6 space-y-6"
+            >
+                <div class="text-center py-12 text-gray-400">
+                    <i class="fa-solid fa-spinner fa-spin text-2xl mb-3"></i>
+                    <p>Loading your coupons…</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         TRACK ORDER MODAL
+    ========================================================== -->
+
+    <div
+        id="trackOrderModal"
+        class="
+            modal-backdrop
+            fixed
+            inset-0
+            bg-black/55
+            z-[60]
+            flex
+            items-center
+            justify-center
+            backdrop-blur-md
+            p-4
+            hidden
+        "
+        aria-hidden="true"
+    >
+
+        <div
+            class="
+                modal-panel
+                bg-white
+                rounded-3xl
+                shadow-2xl
+                w-full
+                max-w-lg
+                max-h-[88vh]
+                flex
+                flex-col
+                overflow-hidden
+            "
+        >
+
+            <!-- Header -->
+            <div
+                class="
+                    flex
+                    justify-between
+                    items-center
+                    p-6
+                    border-b
+                    border-gray-100
+                "
+            >
+
+                <div>
+                    <p
+                        class="
+                            text-xs
+                            font-bold
+                            uppercase
+                            tracking-[.18em]
+                            text-orange-500
+                        "
+                    >
+                        Order Tracking
+                    </p>
+
+                    <h2
+                        class="
+                            text-xl
+                            font-bold
+                            text-gray-800
+                        "
+                    >
+                        Track Your Order
+                    </h2>
+                </div>
+
+                <button
+                    onclick="closeTrackOrderModal()"
+                    class="
+                        w-10
+                        h-10
+                        rounded-full
+                        bg-gray-100
+                        text-gray-400
+                        hover:text-gray-700
+                        hover:bg-gray-200
+                        transition-all
+                        pressable
+                    "
+                    aria-label="Close tracking"
+                >
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+
+            </div>
+
+            <!-- Search Input -->
+            <div id="trackOrderIdSection" class="p-6 border-b border-gray-100 space-y-3">
+                <label class="block">
+                    <span class="text-xs font-semibold text-gray-500 mb-1.5 block">
+                        Enter Order ID &amp; Phone Number
+                    </span>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input
+                            type="text"
+                            id="orderIdInput"
+                            placeholder="Order ID (e.g., 8f1c...)"
+                            class="
+                                flex-1
+                                px-4
+                                py-3
+                                rounded-2xl
+                                border
+                                border-gray-200
+                                bg-gray-50/70
+                                focus:bg-white
+                                focus:ring-4
+                                focus:ring-orange-100
+                                focus:border-orange-400
+                                outline-none
+                                transition-all
+                                font-mono
+                            "
+                        >
+                        <input
+                            type="tel"
+                            id="orderPhoneInput"
+                            placeholder="Phone Number"
+                            class="
+                                flex-1
+                                px-4
+                                py-3
+                                rounded-2xl
+                                border
+                                border-gray-200
+                                bg-gray-50/70
+                                focus:bg-white
+                                focus:ring-4
+                                focus:ring-orange-100
+                                focus:border-orange-400
+                                outline-none
+                                transition-all
+                            "
+                        >
+                        <button
+                            onclick="trackOrderByID(document.getElementById('orderIdInput').value, document.getElementById('orderPhoneInput').value)"
+                            class="
+                                px-6
+                                py-3
+                                rounded-2xl
+                                bg-orange-500
+                                text-white
+                                font-bold
+                                hover:bg-orange-600
+                                transition-all
+                                shadow-glow
+                                pressable
+                            "
+                        >
+                            Track
+                        </button>
+                    </div>
+                </label>
+
+                <p
+                    id="trackingError"
+                    class="text-xs text-red-500 font-semibold mt-2 hidden"
+                ></p>
+            </div>
+
+            <!-- Tracking Content -->
+            <div
+                id="trackingContent"
+                class="
+                    flex-1
+                    overflow-y-auto
+                    overflow-x-visible
+                "
+            >
+                <div class="text-center py-12 text-gray-400">
+                    <i class="fa-solid fa-magnifying-glass text-3xl mb-3"></i>
+                    <p class="font-semibold">Enter your Order ID and Phone Number to track</p>
+                </div>
+            </div>
+
+            <!-- WhatsApp CTA -->
+            <div class="p-4 border-t border-gray-100 bg-gray-50">
+                <a
+                    href="https://wa.me/923000000000"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="
+                        flex items-center justify-center gap-2
+                        w-full py-3 px-4
+                        bg-green-500 hover:bg-green-600
+                        text-white font-semibold text-sm
+                        rounded-2xl transition-colors pressable
+                    "
+                >
+                    <i class="fa-brands fa-whatsapp text-lg"></i>
+                    Talk to Us on WhatsApp
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         MOBILE BOTTOM NAVIGATION
+    ========================================================== -->
+
+    <nav
+        id="bottomNav"
+        class="
+            bottom-nav
+            fixed
+            bottom-0
+            left-0
+            right-0
+            z-50
+            md:hidden
+            bg-white/90
+            backdrop-blur-xl
+            border-t
+            border-gray-200/80
+        "
+    >
+
+        <div
+            class="
+                grid
+                grid-cols-3
+            "
+        >
+
+            <button
+                id="bottomNavHome"
+                class="bottom-nav-btn active"
+            >
+                <i class="fa-solid fa-house"></i>
+                <span>Home</span>
+            </button>
+
+            <button
+                id="bottomNavMenu"
+                class="bottom-nav-btn"
+            >
+                <i class="fa-solid fa-utensils"></i>
+                <span>Menu</span>
+            </button>
+
+            <button
+                id="bottomNavCart"
+                class="bottom-nav-btn relative"
+            >
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span>Cart</span>
+
+                <span
+                    id="bottomNavCartCount"
+                    class="
+                        absolute
+                        top-1
+                        right-1/4
+                        bg-red-600
+                        text-white
+                        text-[10px]
+                        font-bold
+                        rounded-full
+                        h-4
+                        w-4
+                        flex
+                        items-center
+                        justify-center
+                        border-2
+                        border-white
+                    "
+                >
+                    0
+                </span>
+            </button>
+
+        </div>
+
+    </nav>
+
+
+    <div class="hidden md:block max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <div class="flex items-center justify-between rounded-full border border-orange-100 bg-white px-5 py-3 shadow-soft">
+            <div class="flex items-center gap-3">
+                <span class="grid h-9 w-9 place-items-center rounded-full bg-orange-500 text-sm text-white shadow-glow">
+                    <i class="fa-solid fa-phone-volume"></i>
+                </span>
+                <div>
+                    <div class="text-[10px] font-bold uppercase tracking-[.22em] text-orange-500">Call us</div>
+                    <div class="text-sm font-black text-gray-900">0300-0000000</div>
+                </div>
+            </div>
+
+            <a
+                href="tel:03000000000"
+                class="inline-flex items-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-600 transition-colors"
+            >
+                <i class="fa-solid fa-phone"></i>
+                <span>Call Now</span>
+            </a>
+        </div>
+    </div>
+
+    <footer class="bg-gray-900 text-gray-200">
+        <div class="max-w-7xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
+            <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <span class="grid h-10 w-10 place-items-center rounded-2xl bg-orange-500 text-white shadow-glow">
+                            <i class="fa-solid fa-utensils"></i>
+                        </span>
+                        <div>
+                            <div class="text-lg font-black text-white">ChefTech</div>
+                            <div class="text-sm text-gray-400">Fresh food, fast service</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:gap-6">
+                    <a href="tel:03000000000" class="inline-flex items-center gap-2 text-orange-300 hover:text-white transition-colors">
+                        <i class="fa-solid fa-phone"></i>
+                        <span>0300-0000000</span>
+                    </a>
+                    <a href="mailto:contact@example.com" class="inline-flex items-center gap-2 text-orange-300 hover:text-white transition-colors">
+                        <i class="fa-solid fa-envelope"></i>
+                        <span>contact@example.com</span>
+                    </a>
+                    <a href="#menuSection" class="text-gray-300 hover:text-white transition-colors">Order Now</a>
+                    <a href="#top" class="text-gray-300 hover:text-white transition-colors">Back to Top</a>
+                </div>
+            </div>
+
+            <div class="mt-8 border-t border-gray-800 pt-6 text-sm text-gray-400">
+                © 2026 ChefTech. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <div class="fixed bottom-20 right-3 z-[70] md:hidden">
+        <div class="flex items-center gap-2 rounded-full border border-white/40 bg-white/75 p-1.5 shadow-xl shadow-slate-900/10 backdrop-blur-md">
+            <a
+                href="https://maps.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="floating-action flex items-center gap-2 rounded-full bg-gray-900 px-3 py-2 text-[10px] font-bold text-white transition-all hover:scale-[1.03] active:scale-95"
+                aria-label="Get directions to ChefTech"
+            >
+                <i class="fa-solid fa-location-dot"></i>
+                <span>Directions</span>
+            </a>
+
+            <a
+                href="tel:03000000000"
+                class="floating-action flex items-center gap-2 rounded-full bg-orange-500 px-4 py-2.5 text-[10px] font-black text-white shadow-lg shadow-orange-500/40 transition-all hover:scale-[1.03] active:scale-95"
+                aria-label="Call ChefTech now"
+            >
+                <i class="fa-solid fa-phone-volume"></i>
+                <span>Call Now</span>
+            </a>
+        </div>
+    </div>
+
+
+    <!-- =========================================================
+         SUPABASE / WEBSITE JAVASCRIPT
+    ========================================================== -->
+
+    <script
+        type="module"
+        src="appwebsite.js"
+    ></script>
+
+</body>
+
+</html>
