@@ -171,7 +171,7 @@ begin
 end;
 $$;
 
--- 7. Secure Initial Owner Bootstrap Procedure (Fixes Phase 2.1)
+-- 7. Secure Initial Owner Bootstrap Procedure (Fixes Phase 2.1 & P0 Hardening)
 create or replace function public.bootstrap_initial_owner(p_email text)
 returns jsonb
 language plpgsql
@@ -179,31 +179,51 @@ security definer
 set search_path = ''
 as $$
 declare
+  v_jwt_role text := coalesce(current_setting('request.jwt.claim.role', true), '');
+  v_is_trusted_admin boolean := (v_jwt_role = 'service_role')
+    or (current_user in ('postgres', 'service_role', 'supabase_admin'));
   v_user_id uuid;
   v_existing_owners integer;
   v_clean_email text := trim(lower(coalesce(p_email, '')));
 begin
+  -- 1. Caller authorization: Only trusted administrative process / service_role / superuser may bootstrap
+  if not v_is_trusted_admin then
+    raise exception 'Permission denied: bootstrap_initial_owner may only be executed by a trusted administrative process.';
+  end if;
+
   if v_clean_email = '' then
     raise exception 'Email address is required to bootstrap the Owner account.';
   end if;
 
-  -- Lock profiles table to prevent concurrent race conditions
-  perform 1 from public.profiles where role = 'OWNER' for update;
+  -- 2. Concurrency lock: Acquire global transaction advisory lock.
+  -- Serializes simultaneous bootstrap attempts globally, regardless of table state.
+  perform pg_advisory_xact_lock(hashtext('cheftech_owner_bootstrap_lock'));
 
-  select count(*) into v_existing_owners from public.profiles where role = 'OWNER';
+  -- 3. Check if ANY active OWNER exists in profiles
+  select count(*) into v_existing_owners
+  from public.profiles
+  where role = 'OWNER' and active = true;
+
   if v_existing_owners > 0 then
     raise exception 'Initial owner setup has already been completed. An OWNER account already exists in this system.';
   end if;
 
-  select id into v_user_id from public.profiles where lower(email) = v_clean_email limit 1;
+  -- 4. Find target profile
+  select id into v_user_id
+  from public.profiles
+  where lower(email) = v_clean_email
+  limit 1;
+
   if v_user_id is null then
     raise exception 'No registered user profile found for email "%". Please sign up the owner account first, then run bootstrap.', v_clean_email;
   end if;
 
+  -- 5. Elevate to OWNER atomically
   update public.profiles
   set role = 'OWNER', active = true, updated_at = now()
   where id = v_user_id;
 
+  -- 6. Log to audit trail
   insert into public.audit_logs (user_name, action, details)
   values (v_clean_email, 'OWNER_BOOTSTRAPPED', format('User %s (%s) elevated to initial OWNER via secure bootstrap.', v_user_id, v_clean_email));
 
@@ -217,8 +237,10 @@ begin
 end;
 $$;
 
-revoke execute on function public.bootstrap_initial_owner(text) from public, anon;
-grant execute on function public.bootstrap_initial_owner(text) to authenticated, service_role;
+-- Strictly revoke execution from public, anon, and normal authenticated users
+revoke execute on function public.bootstrap_initial_owner(text) from public, anon, authenticated;
+-- Grant execution ONLY to service_role / admin
+grant execute on function public.bootstrap_initial_owner(text) to service_role;
 
 -- 8. Atomic Transactional Checkout Function (Fixes Phase 3)
 create or replace function public.process_online_order_checkout(
@@ -278,18 +300,24 @@ declare
   v_created_order record;
   v_item_row jsonb;
 begin
-  -- 1. Idempotency Check (Phase 3.5)
-  if p_idempotency_key is not null and trim(p_idempotency_key) <> '' then
-    select * into v_existing_order
-    from public.online_orders
-    where idempotency_key = trim(p_idempotency_key);
+  -- 1. Idempotency Check & Concurrency Advisory Lock (P1)
+  if p_idempotency_key is null or trim(p_idempotency_key) = '' or length(trim(p_idempotency_key)) < 16 then
+    raise exception 'Missing or invalid idempotency key. A unique key (minimum 16 characters) is required.';
+  end if;
 
-    if found then
-      return jsonb_build_object(
-        'order', row_to_json(v_existing_order),
-        'replayed', true
-      );
-    end if;
+  -- Acquire transaction-level advisory lock on the idempotency key hash.
+  -- This safely serializes simultaneous requests with the exact same key without deadlocking.
+  perform pg_advisory_xact_lock(hashtext('idemp_' || trim(p_idempotency_key)));
+
+  select * into v_existing_order
+  from public.online_orders
+  where idempotency_key = trim(p_idempotency_key);
+
+  if found then
+    return jsonb_build_object(
+      'order', row_to_json(v_existing_order),
+      'replayed', true
+    );
   end if;
 
   -- 2. Validate Order Type & Customer Details

@@ -74,6 +74,7 @@ If you have not already set up the shared Supabase project from the POS reposito
    ```sql
    SELECT public.bootstrap_initial_owner('your-owner-email@example.com');
    ```
+   *Note: Execution of this procedure is restricted to `service_role` and database administrators; normal authenticated customers cannot call it.*
 
 ### 3. Build Tailwind CSS (When Customizing Styles)
 

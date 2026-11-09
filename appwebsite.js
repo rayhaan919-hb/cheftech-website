@@ -20,6 +20,7 @@ let pastOrdersCache = [];
 let pastOrdersChannel = null;
 let activeOrderChannel = null;
 let placingOrder = false;
+let currentCheckoutIdempotencyKey = null;
 
 let categories = [{ id: "ALL", name: "All" }];
 let menuItems = [];
@@ -43,6 +44,7 @@ function loadCart() {
 loadCart();
 
 function saveCart() {
+    currentCheckoutIdempotencyKey = null;
     try {
         localStorage.setItem("chefTechCart", JSON.stringify(cart));
     } catch (e) {
@@ -51,6 +53,7 @@ function saveCart() {
 }
 
 function clearCart() {
+    currentCheckoutIdempotencyKey = null;
     cart = [];
     redeemLoyaltyPoints = 0;
     localStorage.removeItem("chefTechCart");
@@ -580,6 +583,7 @@ async function applyCoupon() {
         }
 
         appliedCoupon = couponData;
+        currentCheckoutIdempotencyKey = null;
 
         input.disabled = true;
         $("applyCouponBtn").textContent = "Remove";
@@ -596,6 +600,7 @@ async function applyCoupon() {
 }
 
 function removeCoupon() {
+    currentCheckoutIdempotencyKey = null;
     appliedCoupon = null;
 
     const input = $("couponCodeInput");
@@ -1197,6 +1202,7 @@ window.closeTrackOrderModal = closeTrackOrderModal;
 
 // ===== Order Type =====
 function setOrderType(type) {
+    currentCheckoutIdempotencyKey = null;
     currentOrderType = type;
 
     const deliveryBtn = $("orderTypeDelivery");
@@ -1312,7 +1318,13 @@ async function placeOrder() {
     placeBtn.classList.add("loading");
 
     try {
-        const idempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `IDEMP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        // P1: Maintain & persist idempotency key for this checkout attempt so retries reuse the exact same key
+        if (!currentCheckoutIdempotencyKey) {
+            currentCheckoutIdempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : `idemp_${Date.now()}_${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 10)}`;
+        }
+        const idempotencyKey = currentCheckoutIdempotencyKey;
         const orderPayload = {
             idempotency_key: idempotencyKey,
             items: cart.map(item => ({
@@ -1354,6 +1366,7 @@ async function placeOrder() {
             placeBtn.disabled = false;
             placingOrder = false;
 
+            currentCheckoutIdempotencyKey = null;
             clearCart();
             removeCoupon();
 

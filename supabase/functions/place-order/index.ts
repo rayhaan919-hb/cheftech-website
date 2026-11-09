@@ -114,7 +114,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Phase 3.5: Idempotency Key
+    // Phase 3.5 & P1: Mandatory Idempotency Key Validation
     const idempotencyKey = String(
       req.headers.get('Idempotency-Key') ||
       req.headers.get('X-Idempotency-Key') ||
@@ -122,6 +122,17 @@ Deno.serve(async (req: Request) => {
       body.idempotencyKey ||
       ''
     ).trim();
+
+    const IDEMP_REGEX = /^[A-Za-z0-9_-]{16,128}$/;
+    if (!idempotencyKey || !IDEMP_REGEX.test(idempotencyKey)) {
+      return new Response(
+        JSON.stringify({
+          error: 'Missing or invalid Idempotency-Key. A unique key (16 to 128 characters: letters, digits, _, -) is required.',
+          code: 'INVALID_IDEMPOTENCY_KEY',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const rawItems = Array.isArray(body.items) ? body.items : [];
     if (rawItems.length === 0) {
