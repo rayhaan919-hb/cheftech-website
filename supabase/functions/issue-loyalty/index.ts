@@ -1,14 +1,45 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('origin') || '';
+  const allowedEnv = Deno.env.get('ALLOWED_ORIGINS');
+
+  const allowedList = (allowedEnv && allowedEnv.trim())
+    ? allowedEnv.split(',').map((o) => o.trim().toLowerCase()).filter(Boolean)
+    : [
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:5173',
+      ];
+
+  let allowOrigin = 'null';
+  if (origin && allowedList.includes(origin.toLowerCase())) {
+    allowOrigin = origin;
+  } else if (!origin && allowedList.length > 0) {
+    allowOrigin = allowedList[0];
+  }
+
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  };
+}
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
@@ -30,14 +61,14 @@ Deno.serve(async (req: Request) => {
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData?.user) {
       return new Response(
-        JSON.stringify({ error: 'Invalid session.' }),
+        JSON.stringify({ error: 'Invalid or expired session.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // S-05: Only staff (OWNER, MANAGER, CASHIER) may trigger loyalty issuance when completing an order
+    // Only authorized staff (OWNER, MANAGER, CASHIER) may issue loyalty points
     const { data: callerProfile } = await adminClient
       .from('profiles')
       .select('role, active')
@@ -55,7 +86,14 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return new Response(
+        JSON.stringify({ error: 'Malformed JSON payload.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const orderId = String(body.orderId || body.order_id || '').trim();
     if (!orderId) {
       return new Response(
@@ -108,7 +146,6 @@ Deno.serve(async (req: Request) => {
       ? profile.processed_order_ids
       : [];
 
-    // M-04: Idempotency check so double-clicks or retries never double-increment loyalty
     if (processedIds.includes(orderId)) {
       await adminClient.from('online_orders').update({ loyalty_issued: true }).eq('id', orderId);
       return new Response(
@@ -139,12 +176,24 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Record in loyalty transactions ledger
+    if (earnedPoints > 0) {
+      await adminClient.from('loyalty_transactions').insert({
+        profile_id: profile.id,
+        points_change: earnedPoints,
+        new_balance: newLoyaltyPoints,
+        transaction_type: 'EARN_ORDER',
+        reference_id: orderId,
+        description: `Earned ${earnedPoints} points on order #${orderId}`,
+      });
+    }
+
     await adminClient
       .from('online_orders')
       .update({ loyalty_issued: true, updated_at: new Date().toISOString() })
       .eq('id', orderId);
 
-    // M-01 Option B: Keep POS CRM customers table in sync by phone or profile_id
+    // Keep POS CRM customers table in sync
     const customerPhone = String(order.customer?.phone || '').trim();
     if (customerPhone) {
       await adminClient
@@ -157,7 +206,7 @@ Deno.serve(async (req: Request) => {
         .eq('phone', customerPhone);
     }
 
-    // M-01 & S-05: Every 10th completed order mints a single-use 10%-off loyalty coupon
+    // Every 10th completed order mints a single-use 10%-off loyalty coupon
     let mintedCouponCode: string | null = null;
     if (newOrderCount > 0 && newOrderCount % 10 === 0) {
       const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();

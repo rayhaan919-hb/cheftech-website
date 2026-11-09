@@ -1312,7 +1312,9 @@ async function placeOrder() {
     placeBtn.classList.add("loading");
 
     try {
+        const idempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `IDEMP-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
         const orderPayload = {
+            idempotency_key: idempotencyKey,
             items: cart.map(item => ({
                 menuItemId: item.menuItemId || item.id,
                 qty: item.qty
@@ -1329,7 +1331,10 @@ async function placeOrder() {
 
         // S-04: Authoritative server-side order creation via place-order Edge Function
         const { data, error } = await supabase.functions.invoke("place-order", {
-            body: orderPayload
+            body: orderPayload,
+            headers: {
+                "Idempotency-Key": idempotencyKey
+            }
         });
 
         if (error || !data || data.error) {

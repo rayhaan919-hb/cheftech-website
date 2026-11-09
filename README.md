@@ -23,6 +23,17 @@
 
 ---
 
+## Documentation Index
+
+Comprehensive production documentation is located in the [`docs/`](./docs) directory:
+- [**Installation & Deployment Guide**](./docs/INSTALLATION.md) — Step-by-step setup for development, staging, and production hosting.
+- [**Owner Account & Staff Setup**](./docs/OWNER_SETUP.md) — Secure Owner bootstrap procedure, role hierarchy, and permissions.
+- [**Supabase Configuration Guide**](./docs/SUPABASE_SETUP.md) — Database schema, migrations, RLS policies, and Edge Functions deployment.
+- [**Security & Threat Model**](./docs/SECURITY.md) — Defense-in-depth architecture, CORS allowlists, anti-tampering, and audit logging.
+- [**Backup & Disaster Recovery**](./docs/BACKUP_AND_RECOVERY.md) — Cloud backups, point-in-time recovery, and restore procedures.
+
+---
+
 ## Quick Start
 
 ### 1. Configure Supabase Credentials
@@ -45,7 +56,9 @@ You can configure your Supabase project in any of three ways:
 
 If you have not already set up the shared Supabase project from the POS repository:
 
-1. Open your **Supabase Dashboard → SQL Editor** and execute [`supabase/migrations/20261108000000_initial_schema_and_rls.sql`](./supabase/migrations/20261108000000_initial_schema_and_rls.sql).
+1. Open your **Supabase Dashboard → SQL Editor** and run the migrations in order:
+   - [`supabase/migrations/20261108000000_initial_schema_and_rls.sql`](./supabase/migrations/20261108000000_initial_schema_and_rls.sql)
+   - [`supabase/migrations/20261109000000_security_owner_bootstrap_and_checkout.sql`](./supabase/migrations/20261109000000_security_owner_bootstrap_and_checkout.sql)
 2. Deploy the 4 Edge Functions using the Supabase CLI:
    ```bash
    supabase login
@@ -55,6 +68,11 @@ If you have not already set up the shared Supabase project from the POS reposito
    supabase functions deploy consume-coupon
    supabase functions deploy issue-loyalty
    supabase functions deploy track-order
+   ```
+3. **Bootstrap Initial Owner Account**:
+   Sign up your owner account, then run in the SQL Editor:
+   ```sql
+   SELECT public.bootstrap_initial_owner('your-owner-email@example.com');
    ```
 
 ### 3. Build Tailwind CSS (When Customizing Styles)

@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
+    "test": "node --check appwebsite.js && node --check adminwebsite.js && node --check config.js && node --check server.js",
     "build": "tailwindcss -i ./src/tailwind.css -o ./styles.css --minify",
     "build:css": "tailwindcss -i ./src/tailwind.css -o ./styles.css --minify",
     "watch:css": "tailwindcss -i ./src/tailwind.css -o ./styles.css --watch"

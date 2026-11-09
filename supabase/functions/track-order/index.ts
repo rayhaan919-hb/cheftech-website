@@ -1,25 +1,70 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('origin') || '';
+  const allowedEnv = Deno.env.get('ALLOWED_ORIGINS');
+
+  const allowedList = (allowedEnv && allowedEnv.trim())
+    ? allowedEnv.split(',').map((o) => o.trim().toLowerCase()).filter(Boolean)
+    : [
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:5173',
+      ];
+
+  let allowOrigin = 'null';
+  if (origin && allowedList.includes(origin.toLowerCase())) {
+    allowOrigin = origin;
+  } else if (!origin && allowedList.length > 0) {
+    allowOrigin = allowedList[0];
+  }
+
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  };
+}
 
 function normalizeDigits(phone: string): string {
   return String(phone || '').replace(/\D/g, '');
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-    const body = await req.json();
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({ error: 'Server configuration missing.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return new Response(
+        JSON.stringify({ error: 'Malformed JSON payload.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const orderId = String(body.orderId || body.order_id || '').trim();
     const phone = normalizeDigits(body.phone || '');
 
@@ -53,7 +98,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // S-03: Return only non-sensitive status & summary fields, never full customer address/PII
+    // Return only non-sensitive status & summary fields, never customer address/PII
     return new Response(
       JSON.stringify({
         order: {

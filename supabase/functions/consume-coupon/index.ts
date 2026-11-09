@@ -1,14 +1,45 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('origin') || '';
+  const allowedEnv = Deno.env.get('ALLOWED_ORIGINS');
+
+  const allowedList = (allowedEnv && allowedEnv.trim())
+    ? allowedEnv.split(',').map((o) => o.trim().toLowerCase()).filter(Boolean)
+    : [
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:5173',
+      ];
+
+  let allowOrigin = 'null';
+  if (origin && allowedList.includes(origin.toLowerCase())) {
+    allowOrigin = origin;
+  } else if (!origin && allowedList.length > 0) {
+    allowOrigin = allowedList[0];
+  }
+
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  };
+}
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
@@ -18,19 +49,30 @@ Deno.serve(async (req: Request) => {
 
     const authHeader = req.headers.get('Authorization');
     let user: { id: string; email?: string } | null = null;
-    if (authHeader) {
+    if (authHeader && authHeader.trim().toLowerCase().startsWith('bearer ')) {
       const userClient = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const { data: userData } = await userClient.auth.getUser();
-      if (userData?.user) {
-        user = userData.user;
+      const { data: userData, error: userAuthErr } = await userClient.auth.getUser();
+      if (userAuthErr || !userData?.user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid or expired session.' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
+      user = userData.user;
     }
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return new Response(
+        JSON.stringify({ error: 'Malformed JSON payload.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const code = String(body.code || '').trim().toUpperCase();
     const consume = Boolean(body.consume);
 
@@ -75,7 +117,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // M-03: Clamp discount percent to 0..100
+    // Clamp discount percent to 0..100
     const discountPercent = Math.min(100, Math.max(0, Number(coupon.discount_percent) || 0));
 
     if (consume) {
