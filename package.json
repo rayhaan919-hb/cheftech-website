@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "ChefTech Restaurant Online Ordering Website & Admin Dashboard (Supabase Edition)",
   "private": true,
+  "type": "module",
   "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
     "build": "tailwindcss -i ./src/tailwind.css -o ./styles.css --minify",
     "build:css": "tailwindcss -i ./src/tailwind.css -o ./styles.css --minify",
     "watch:css": "tailwindcss -i ./src/tailwind.css -o ./styles.css --watch"

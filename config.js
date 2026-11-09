@@ -42,10 +42,14 @@ export function getSupabaseConfig() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed?.supabaseUrl && parsed?.supabaseAnonKey) {
+      const url = String(parsed?.supabaseUrl || parsed?.url || '').trim().replace(/\/+$/, '');
+      const anonKey = String(parsed?.supabaseAnonKey || parsed?.anonKey || '').trim();
+      if (url && anonKey) {
         return {
-          supabaseUrl: String(parsed.supabaseUrl).trim().replace(/\/+$/, ''),
-          supabaseAnonKey: String(parsed.supabaseAnonKey).trim(),
+          supabaseUrl: url,
+          supabaseAnonKey: anonKey,
+          url,
+          anonKey,
         };
       }
     }
@@ -53,9 +57,13 @@ export function getSupabaseConfig() {
     // ignore storage errors
   }
 
+  const defaultUrl = DEFAULT_SUPABASE_URL.trim().replace(/\/+$/, '');
+  const defaultKey = DEFAULT_SUPABASE_ANON_KEY.trim();
   return {
-    supabaseUrl: DEFAULT_SUPABASE_URL.trim().replace(/\/+$/, ''),
-    supabaseAnonKey: DEFAULT_SUPABASE_ANON_KEY.trim(),
+    supabaseUrl: defaultUrl,
+    supabaseAnonKey: defaultKey,
+    url: defaultUrl,
+    anonKey: defaultKey,
   };
 }
 

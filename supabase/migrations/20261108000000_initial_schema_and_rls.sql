@@ -517,6 +517,33 @@ after insert on auth.users
 for each row
 execute function public.handle_new_user();
 
+-- Auto-confirm user emails when require_email_verification is disabled or for internal staff logins
+create or replace function public.auto_confirm_users()
+returns trigger
+language plpgsql
+security definer
+as $$
+declare
+  v_require_verification boolean := false;
+begin
+  select coalesce((value->>'enabled')::boolean, false) into v_require_verification
+  from public.settings
+  where key = 'require_email_verification';
+
+  if not v_require_verification or new.email like '%@cheftech-pos.local' then
+    new.email_confirmed_at := coalesce(new.email_confirmed_at, now());
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_auto_confirm on auth.users;
+create trigger on_auth_user_auto_confirm
+before insert on auth.users
+for each row
+execute function public.auto_confirm_users();
+
 -- ============================================================================
 -- Enable Row Level Security (RLS) on ALL Tables (Appendix A3)
 -- ============================================================================

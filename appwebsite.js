@@ -4,7 +4,7 @@ import { getSupabaseConfig, isSupabaseConfigured } from "./config.js";
 
 const supaCfg = getSupabaseConfig();
 const supabase = isSupabaseConfigured()
-    ? createClient(supaCfg.url, supaCfg.anonKey)
+    ? createClient(supaCfg.supabaseUrl || supaCfg.url, supaCfg.supabaseAnonKey || supaCfg.anonKey)
     : null;
 
 // ===== State =====
@@ -398,10 +398,14 @@ function renderMenu(items) {
 
         const categoryName = categories.find(c => c.id === item.categoryId)?.name || "";
 
+        const imgSrc = item.img && String(item.img).trim()
+            ? String(item.img).trim()
+            : `https://placehold.co/800x600?text=${encodeURIComponent(item.name)}`;
+
         card.innerHTML = `
             <div class="relative overflow-hidden bg-gray-50">
                 <img
-                    src="${escapeHTML(item.img)}"
+                    src="${escapeHTML(imgSrc)}"
                     alt="${escapeHTML(item.name)}"
                     loading="lazy"
                     decoding="async"
@@ -434,13 +438,15 @@ function renderMenu(items) {
         `;
 
         const image = card.querySelector("img");
-        image.addEventListener(
-            "error",
-            () => {
-                image.src = `https://placehold.co/800x600?text=${encodeURIComponent(item.name)}`;
-            },
-            { once: true }
-        );
+        if (image) {
+            image.addEventListener(
+                "error",
+                () => {
+                    image.src = `https://placehold.co/800x600?text=${encodeURIComponent(item.name)}`;
+                },
+                { once: true }
+            );
+        }
 
         grid.appendChild(card);
 
@@ -519,11 +525,6 @@ async function applyCoupon() {
         return;
     }
 
-    if (!currentUser) {
-        setCouponMessage("Please sign in before applying a coupon.");
-        return;
-    }
-
     try {
         // Validate via consume-coupon Edge Function with consume: false
         let couponData = null;
@@ -532,9 +533,13 @@ async function applyCoupon() {
         });
 
         if (!fnErr && fnData && fnData.valid) {
+            const c = fnData.coupon || fnData;
             couponData = {
-                code: fnData.code || code,
-                discountPercent: Math.max(0, Math.min(100, Number(fnData.discount_percent ?? fnData.discountPercent) || 0))
+                code: c.code || fnData.code || code,
+                discountPercent: Math.max(
+                    0,
+                    Math.min(100, Number(c.discount_percent ?? c.discountPercent ?? fnData.discount_percent ?? fnData.discountPercent) || 0)
+                )
             };
         } else {
             // Fallback read from coupons table via RLS
@@ -560,8 +565,8 @@ async function applyCoupon() {
                 setCouponMessage("This coupon has reached its usage limit.");
                 return;
             }
-            if (row.assigned_to && row.assigned_to !== currentUser.id) {
-                setCouponMessage("This coupon is not valid for your account.");
+            if (row.assigned_to && (!currentUser || row.assigned_to !== currentUser.id)) {
+                setCouponMessage("This coupon is assigned to a specific customer account. Please sign in.");
                 return;
             }
             if (isCouponExpired(row.expires_at)) {
@@ -1024,18 +1029,19 @@ window.trackOrderByID = async function(orderId, phoneInput) {
             return;
         }
 
+        const ord = data.order || data;
         renderOrderTimeline({
-            id: data.id,
-            status: data.status,
-            orderType: data.orderType || data.order_type || "DELIVERY",
-            total: data.total,
-            estimatedReadyTime: data.estimatedReadyTime || data.estimated_ready_time,
-            rejectionReason: data.rejectionReason || data.rejection_reason,
-            pendingAt: data.createdAt || data.created_at,
-            acceptedAt: data.acceptedAt || data.accepted_at,
-            preparingAt: data.preparingAt || data.preparing_at,
-            out_for_deliveryAt: data.outForDeliveryAt || data.out_for_delivery_at,
-            completedAt: data.completedAt || data.completed_at
+            id: ord.id,
+            status: ord.status,
+            orderType: ord.orderType || ord.order_type || "DELIVERY",
+            total: ord.total,
+            estimatedReadyTime: ord.estimatedReadyTime || ord.estimated_ready_time,
+            rejectionReason: ord.rejectionReason || ord.rejection_reason,
+            pendingAt: ord.createdAt || ord.created_at,
+            acceptedAt: ord.acceptedAt || ord.accepted_at,
+            preparingAt: ord.preparingAt || ord.preparing_at,
+            out_for_deliveryAt: ord.outForDeliveryAt || ord.out_for_delivery_at,
+            completedAt: ord.completedAt || ord.completed_at
         });
     } catch (error) {
         console.error("Error tracking order:", error);
@@ -1244,21 +1250,16 @@ async function placeOrder() {
         return;
     }
 
-    if (!currentUser) {
-        closeModal($("cartModal"));
-        openModal($("authModal"));
-        showToast("Please sign in to place your order.", "fa-user");
-        return;
-    }
-
-    // H-05: Require email verification unless disabled by owner in settings
-    const requireVerified = await isEmailVerificationRequired();
-    if (requireVerified && !currentUser.email_confirmed_at) {
-        showToast(
-            "Please verify your email (check your inbox) before placing an order.",
-            "fa-envelope-circle-check"
-        );
-        return;
+    // H-05: If signed in, require email verification unless disabled by owner in settings
+    if (currentUser) {
+        const requireVerified = await isEmailVerificationRequired();
+        if (requireVerified && !currentUser.email_confirmed_at) {
+            showToast(
+                "Please verify your email (check your inbox) before placing an order.",
+                "fa-envelope-circle-check"
+            );
+            return;
+        }
     }
 
     // M-07: Verify all items in cart are still available
@@ -1274,9 +1275,15 @@ async function placeOrder() {
         return;
     }
 
-    const name = $("checkoutName").value.trim() || currentUser.email.split("@")[0];
+    const name = $("checkoutName").value.trim() || (currentUser?.email ? currentUser.email.split("@")[0] : "");
     const phone = $("checkoutPhone").value.trim();
     const address = $("checkoutAddress").value.trim();
+
+    if (!name) {
+        $("checkoutName").focus();
+        showToast("Please enter your name.", "fa-user");
+        return;
+    }
 
     if (!phone) {
         $("checkoutPhone").focus();
@@ -1351,7 +1358,14 @@ async function placeOrder() {
 
             closeModal($("cartModal"));
 
-            showToast("Order placed successfully!", "fa-circle-check");
+            const placedOrderId = data.order?.id || data.orderId || data.id || "";
+            if ($("orderIdInput") && placedOrderId) $("orderIdInput").value = placedOrderId;
+            if ($("orderPhoneInput") && phone) $("orderPhoneInput").value = phone;
+
+            showToast(
+                placedOrderId ? `Order ${placedOrderId} placed! Track it live.` : "Order placed successfully!",
+                "fa-circle-check"
+            );
 
             $("checkoutPhone").value = "";
             $("checkoutAddress").value = "";
@@ -1590,10 +1604,14 @@ $("authForm")?.addEventListener("submit", async (event) => {
             clearLoginLockout();
             showToast("Welcome back!", "fa-hand-wave");
         } else {
-            const { error } = await supabase.auth.signUp({ email, password });
+            const { data: signUpData, error } = await supabase.auth.signUp({ email, password });
             if (error) throw error;
             clearLoginLockout();
-            showToast("Account created! Please check your email to verify.", "fa-user-check");
+            if (signUpData?.session) {
+                showToast("Account created and signed in!", "fa-user-check");
+            } else {
+                showToast("Account created! Please check your email to verify.", "fa-user-check");
+            }
         }
 
         closeModal($("authModal"));
@@ -1797,16 +1815,32 @@ async function loadBanners() {
 
         if (error) throw error;
 
-        bannerData = (data || []).map(row => ({
-            id: row.id,
-            title: row.title,
-            description: row.description,
-            type: row.type || "promotion",
-            link: row.link,
-            imageUrls: Array.isArray(row.image_urls) && row.image_urls.length
-                ? row.image_urls
-                : (row.image_url ? [row.image_url] : [])
-        }));
+        bannerData = (data || []).map(row => {
+            let parsedUrls = [];
+            if (Array.isArray(row.image_urls) && row.image_urls.length) {
+                parsedUrls = row.image_urls;
+            } else if (typeof row.image_url === "string" && row.image_url.trim()) {
+                const raw = row.image_url.trim();
+                if (raw.startsWith("[")) {
+                    try {
+                        const arr = JSON.parse(raw);
+                        if (Array.isArray(arr)) parsedUrls = arr;
+                    } catch {
+                        parsedUrls = [raw];
+                    }
+                } else {
+                    parsedUrls = [raw];
+                }
+            }
+            return {
+                id: row.id,
+                title: row.title,
+                description: row.description || row.subtitle || "",
+                type: row.type || "promotion",
+                link: row.link,
+                imageUrls: parsedUrls
+            };
+        });
 
         renderBannerCarousel();
     } catch (error) {
@@ -2111,6 +2145,27 @@ async function initMenu() {
         await loadMenuFromSupabase();
         renderCategories("ALL");
         renderMenu(menuItems);
+
+        // Realtime subscription: auto-update menu and images when dishes are added/edited in POS or Admin
+        if (supabase) {
+            supabase
+                .channel("public:menu_items_live")
+                .on(
+                    "postgres_changes",
+                    { event: "*", schema: "public", table: "menu_items" },
+                    async () => {
+                        try {
+                            await loadMenuFromSupabase();
+                            const activeCat = document.querySelector(".category-pill.active")?.dataset?.category || "ALL";
+                            renderCategories(activeCat);
+                            filterCategory(activeCat);
+                        } catch (err) {
+                            console.warn("Realtime menu refresh error:", err);
+                        }
+                    }
+                )
+                .subscribe();
+        }
     } catch (error) {
         console.error("Failed to load menu from Supabase:", error);
         $("menuGrid").innerHTML = `

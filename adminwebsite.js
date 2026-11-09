@@ -154,7 +154,8 @@ async function checkAdminSession(user) {
         loadCoupons(),
         loadCustomerData(),
         loadBanners(),
-        loadEmailVerifySetting()
+        loadEmailVerifySetting(),
+        loadMenuItems()
     ]);
     startNewOrderListener();
 }
@@ -543,6 +544,70 @@ async function loadCoupons() {
 }
 
 // ===== Image Compression Utility =====
+function formatBytes(bytes) {
+    if (!bytes || bytes <= 0) return "0 B";
+    const units = ["B", "KB", "MB"];
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const val = bytes / Math.pow(1024, i);
+    return `${val.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
+async function compressImageDetailed(file, maxWidth = 800, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                let width = img.naturalWidth || img.width;
+                let height = img.naturalHeight || img.height;
+
+                if (width > maxWidth || height > maxWidth) {
+                    if (width > height) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    } else {
+                        width = Math.round((width * maxWidth) / height);
+                        height = maxWidth;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext("2d");
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = "high";
+                ctx.drawImage(img, 0, 0, width, height);
+
+                let dataUrl = canvas.toDataURL("image/webp", quality);
+                if (!dataUrl.startsWith("data:image/webp")) {
+                    dataUrl = canvas.toDataURL("image/jpeg", quality);
+                }
+
+                const headIndex = dataUrl.indexOf(",");
+                const b64 = headIndex >= 0 ? dataUrl.slice(headIndex + 1) : dataUrl;
+                const compressedBytes = Math.round((b64.length * 3) / 4);
+                const originalBytes = file.size;
+                const ratio = originalBytes > 0
+                    ? Math.round((1 - compressedBytes / originalBytes) * 100)
+                    : 0;
+
+                resolve({
+                    dataUrl,
+                    originalBytes,
+                    compressedBytes,
+                    compressionRatio: Math.max(0, ratio)
+                });
+            };
+            img.onerror = () => reject(new Error("Unable to parse image file."));
+        };
+        reader.onerror = () => reject(new Error("Failed to read image."));
+    });
+}
+
 async function compressImage(file, maxWidth = 1000, quality = 0.78) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -713,5 +778,266 @@ $("bannerForm")?.addEventListener("submit", async (event) => {
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = "Create Banner";
+    }
+});
+
+// ===== Menu Items Management & Local Image Upload =====
+let adminCategoriesCache = [];
+let adminMenuItemsCache = [];
+
+async function loadMenuItems() {
+    const container = $("menuItemsTable");
+    const categorySelect = $("dishCategoryField");
+    if (!container || !supabase) return;
+
+    try {
+        const [catRes, itemRes] = await Promise.all([
+            supabase.from("categories").select("*").order("sort_order", { ascending: true }),
+            supabase.from("menu_items").select("*").order("name", { ascending: true })
+        ]);
+
+        if (catRes.error) throw catRes.error;
+        if (itemRes.error) throw itemRes.error;
+
+        adminCategoriesCache = catRes.data || [];
+        adminMenuItemsCache = itemRes.data || [];
+
+        // Populate category dropdown
+        if (categorySelect) {
+            categorySelect.innerHTML = `<option value="">Select category...</option>` +
+                adminCategoriesCache.map(c => `<option value="${escapeHTML(c.id)}">${escapeHTML(c.name)}</option>`).join("");
+        }
+
+        if (!adminMenuItemsCache.length) {
+            container.innerHTML = `<p class="col-span-full text-gray-400 text-sm py-4">No menu items found.</p>`;
+            return;
+        }
+
+        const catMap = new Map(adminCategoriesCache.map(c => [c.id, c.name]));
+
+        container.innerHTML = adminMenuItemsCache.map(item => {
+            const safeId = escapeHTML(item.id);
+            const categoryName = catMap.get(item.category_id) || "Uncategorized";
+            const isAvail = item.available !== false;
+            const imgSrc = item.image_url && String(item.image_url).trim()
+                ? String(item.image_url).trim()
+                : `https://placehold.co/400x300?text=${encodeURIComponent(item.name)}`;
+
+            return `
+                <div class="flex flex-col justify-between border border-gray-100 rounded-2xl p-3 bg-white shadow-sm hover:shadow transition-shadow">
+                    <div class="flex gap-3 items-center">
+                        <img
+                            src="${escapeHTML(imgSrc)}"
+                            alt="${escapeHTML(item.name)}"
+                            class="w-16 h-16 rounded-xl object-cover border border-gray-100 shrink-0 ${isAvail ? '' : 'grayscale'}"
+                        >
+                        <div class="min-w-0 flex-1">
+                            <h4 class="font-bold text-sm text-gray-900 truncate">${escapeHTML(item.name)}</h4>
+                            <span class="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 mt-0.5">
+                                ${escapeHTML(categoryName)}
+                            </span>
+                            <div class="text-xs font-bold text-gray-700 mt-1">Rs. ${Number(item.price).toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-gray-50">
+                        <button
+                            data-id="${safeId}"
+                            data-available="${isAvail}"
+                            class="toggle-dish-avail text-xs px-2.5 py-1 rounded-lg ${isAvail ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-500 border border-gray-200'} cursor-pointer"
+                        >
+                            ${isAvail ? 'Available' : 'Sold Out'}
+                        </button>
+                        <div class="flex items-center gap-1.5">
+                            <button
+                                data-id="${safeId}"
+                                class="edit-dish-btn px-2.5 py-1 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer"
+                            >
+                                <i class="fa-solid fa-pen mr-1"></i> Edit
+                            </button>
+                            <button
+                                data-id="${safeId}"
+                                class="delete-dish-btn w-7 h-7 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center cursor-pointer"
+                                title="Delete item"
+                            >
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join("");
+
+        // Attach event handlers
+        container.querySelectorAll(".toggle-dish-avail").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const id = btn.dataset.id;
+                const nowAvail = btn.dataset.available === "true";
+                await supabase.from("menu_items").update({ available: !nowAvail }).eq("id", id);
+                await loadMenuItems();
+            });
+        });
+
+        container.querySelectorAll(".edit-dish-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const id = btn.dataset.id;
+                const item = adminMenuItemsCache.find(i => i.id === id);
+                if (!item) return;
+                openDishEditor(item);
+            });
+        });
+
+        container.querySelectorAll(".delete-dish-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const id = btn.dataset.id;
+                const item = adminMenuItemsCache.find(i => i.id === id);
+                if (!window.confirm(`Delete "${item?.name || 'this item'}" from the menu?`)) return;
+                await supabase.from("menu_items").delete().eq("id", id);
+                await loadMenuItems();
+            });
+        });
+    } catch (err) {
+        console.error("Failed to load menu items in admin:", err);
+        container.innerHTML = `<p class="col-span-full text-red-500 text-sm">Could not load menu items.</p>`;
+    }
+}
+
+function openDishEditor(item = null) {
+    const form = $("menuItemForm");
+    if (!form) return;
+
+    form.classList.remove("hidden");
+    $("menuFormTitle").textContent = item ? `Edit: ${item.name}` : "Add New Menu Item";
+    $("dishEditingId").value = item ? item.id : "";
+    $("dishNameField").value = item ? item.name : "";
+    $("dishPriceField").value = item ? item.price : "";
+    $("dishCategoryField").value = item ? (item.category_id || "") : "";
+    $("dishAvailableField").checked = item ? (item.available !== false) : true;
+    $("dishImageUrlInput").value = (item && item.image_url && !item.image_url.startsWith("data:")) ? item.image_url : "";
+    $("dishCompressionStatus").textContent = "";
+
+    const preview = $("dishImagePreview");
+    const placeholder = $("dishImagePlaceholder");
+    const removeBtn = $("clearDishImageBtn");
+
+    if (item && item.image_url) {
+        preview.src = item.image_url;
+        preview.classList.remove("hidden");
+        placeholder.classList.add("hidden");
+        removeBtn.classList.remove("hidden");
+        $("uploadButtonLabel").textContent = "Change Photo";
+    } else {
+        preview.src = "";
+        preview.classList.add("hidden");
+        placeholder.classList.remove("hidden");
+        removeBtn.classList.add("hidden");
+        $("uploadButtonLabel").textContent = "Upload Local Image";
+    }
+
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+$("newDishBtn")?.addEventListener("click", () => openDishEditor(null));
+$("closeMenuItemForm")?.addEventListener("click", () => $("menuItemForm")?.classList.add("hidden"));
+$("cancelDishBtn")?.addEventListener("click", () => $("menuItemForm")?.classList.add("hidden"));
+
+// Local image file selection & auto-compression
+$("dishImageFileInput")?.addEventListener("change", async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const statusEl = $("dishCompressionStatus");
+    statusEl.textContent = "Compressing...";
+    statusEl.className = "text-[11px] text-orange-600 font-bold animate-pulse";
+
+    try {
+        const res = await compressImageDetailed(file, 800, 0.82);
+        const preview = $("dishImagePreview");
+        const placeholder = $("dishImagePlaceholder");
+        const removeBtn = $("clearDishImageBtn");
+
+        preview.src = res.dataUrl;
+        preview.classList.remove("hidden");
+        placeholder.classList.add("hidden");
+        removeBtn.classList.remove("hidden");
+        $("uploadButtonLabel").textContent = "Change Photo";
+
+        statusEl.textContent = `Auto-compressed: ${formatBytes(res.originalBytes)} → ${formatBytes(res.compressedBytes)} (-${res.compressionRatio}%)`;
+        statusEl.className = "text-[11px] text-green-700 font-semibold";
+    } catch (err) {
+        statusEl.textContent = err.message || "Failed to compress image";
+        statusEl.className = "text-[11px] text-red-500 font-medium";
+    }
+});
+
+// Clear photo
+$("clearDishImageBtn")?.addEventListener("click", () => {
+    const preview = $("dishImagePreview");
+    const placeholder = $("dishImagePlaceholder");
+    preview.src = "";
+    preview.classList.add("hidden");
+    placeholder.classList.remove("hidden");
+    $("clearDishImageBtn")?.classList.add("hidden");
+    if ($("dishImageUrlInput")) $("dishImageUrlInput").value = "";
+    if ($("dishImageFileInput")) $("dishImageFileInput").value = "";
+    if ($("dishCompressionStatus")) $("dishCompressionStatus").textContent = "";
+    $("uploadButtonLabel").textContent = "Upload Local Image";
+});
+
+// Save Dish (Add or Edit)
+$("menuItemForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!supabase) return;
+
+    const saveBtn = $("saveDishBtn");
+    const editingId = $("dishEditingId")?.value.trim();
+    const name = $("dishNameField")?.value.trim();
+    const price = parseFloat($("dishPriceField")?.value || "0");
+    const category_id = $("dishCategoryField")?.value;
+    const available = $("dishAvailableField")?.checked ?? true;
+
+    // Image priority: preview src (dataUrl from upload) or pasted external URL
+    const previewSrc = $("dishImagePreview")?.src || "";
+    const pastedUrl = $("dishImageUrlInput")?.value.trim() || "";
+    let finalImageUrl = "";
+    if (previewSrc && previewSrc.startsWith("data:")) {
+        finalImageUrl = previewSrc;
+    } else if (pastedUrl) {
+        finalImageUrl = pastedUrl;
+    } else if (previewSrc && !previewSrc.includes("placehold.co")) {
+        finalImageUrl = previewSrc;
+    }
+
+    if (!name || !price || !category_id) {
+        setFormMessage("menuFormMessage", "Please fill in all required fields (Name, Price, Category).");
+        return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Saving...`;
+
+    try {
+        const dishId = editingId || `dish_${Date.now()}`;
+        const payload = {
+            id: dishId,
+            name,
+            price,
+            category_id,
+            available,
+            image_url: finalImageUrl,
+            updated_at: new Date().toISOString()
+        };
+
+        const { error } = await supabase.from("menu_items").upsert(payload);
+        if (error) throw error;
+
+        setFormMessage("menuFormMessage", `Dish "${name}" saved successfully!`, false);
+        $("menuItemForm")?.classList.add("hidden");
+        await loadMenuItems();
+    } catch (err) {
+        console.error("Dish save failed:", err);
+        setFormMessage("menuFormMessage", err.message || "Failed to save dish.");
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save Dish";
     }
 });

@@ -17,25 +17,17 @@ Deno.serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authentication required to validate or redeem coupons.' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    let user: { id: string; email?: string } | null = null;
+    if (authHeader) {
+      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData } = await userClient.auth.getUser();
+      if (userData?.user) {
+        user = userData.user;
+      }
     }
 
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userData?.user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid session.' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const user = userData.user;
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
@@ -69,9 +61,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (coupon.assigned_to && coupon.assigned_to !== user.id) {
+    if (coupon.assigned_to && (!user || coupon.assigned_to !== user.id)) {
       return new Response(
-        JSON.stringify({ error: 'This coupon is assigned to another customer.' }),
+        JSON.stringify({ error: 'This coupon is assigned to another customer account.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -113,9 +105,13 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         valid: true,
         consumed: consume,
+        code: coupon.code,
+        discount_percent: discountPercent,
+        discountPercent,
         coupon: {
           code: coupon.code,
           discount_percent: discountPercent,
+          discountPercent,
           type: coupon.type,
           single_use: coupon.single_use,
         },

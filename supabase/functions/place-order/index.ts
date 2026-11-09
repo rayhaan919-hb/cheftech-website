@@ -11,6 +11,7 @@ const MIN_DELIVERY_ORDER = 500;
 interface OrderItemInput {
   id?: string;
   menu_item_id?: string;
+  menuItemId?: string;
   name?: string;
   qty: number;
   selectedModifiers?: Array<{ groupName?: string; optionName: string }>;
@@ -33,44 +34,44 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authentication required to place an order.' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userData?.user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired session. Please sign in again.' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const user = userData.user;
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // H-05: Enforce email verification unless explicitly disabled in settings
-    const { data: verifySetting } = await adminClient
-      .from('settings')
-      .select('value')
-      .eq('key', 'require_email_verification')
-      .maybeSingle();
+    // Optional user authentication: support both logged-in users & guest checkout
+    const authHeader = req.headers.get('Authorization');
+    let user = null;
 
-    const requireEmailVerification = verifySetting?.value?.enabled !== false;
-    if (requireEmailVerification && !user.email_confirmed_at) {
-      return new Response(
-        JSON.stringify({
-          error: 'Please verify your email (check your inbox) before placing an order.',
-          code: 'EMAIL_NOT_VERIFIED',
-        }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (authHeader) {
+      try {
+        const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: userData } = await userClient.auth.getUser();
+        if (userData?.user) {
+          user = userData.user;
+        }
+      } catch (_e) {
+        // Fall back to guest checkout if token is invalid or anonymous
+      }
+    }
+
+    // H-05: Enforce email verification for authenticated users unless explicitly disabled in settings
+    if (user) {
+      const { data: verifySetting } = await adminClient
+        .from('settings')
+        .select('value')
+        .eq('key', 'require_email_verification')
+        .maybeSingle();
+
+      const requireEmailVerification = verifySetting?.value?.enabled !== false;
+      if (requireEmailVerification && !user.email_confirmed_at) {
+        return new Response(
+          JSON.stringify({
+            error: 'Please verify your email (check your inbox) before placing an order.',
+            code: 'EMAIL_NOT_VERIFIED',
+          }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const body = await req.json();
@@ -109,7 +110,7 @@ Deno.serve(async (req: Request) => {
     const requestedIds = Array.from(
       new Set(
         rawItems
-          .map((item) => String(item.menu_item_id || item.id || '').trim())
+          .map((item) => String(item.menu_item_id || item.menuItemId || item.id || '').trim())
           .filter(Boolean)
       )
     );
@@ -146,7 +147,7 @@ Deno.serve(async (req: Request) => {
     }> = [];
 
     for (const raw of rawItems) {
-      const itemId = String(raw.menu_item_id || raw.id || '').trim();
+      const itemId = String(raw.menu_item_id || raw.menuItemId || raw.id || '').trim();
       const qty = Math.floor(Number(raw.qty));
       if (!itemId || !Number.isFinite(qty) || qty < 1 || qty > 500) {
         return new Response(
@@ -254,11 +255,13 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      if (coupon.assigned_to && coupon.assigned_to !== user.id) {
-        return new Response(
-          JSON.stringify({ error: 'This coupon is assigned to another account.' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+      if (coupon.assigned_to) {
+        if (!user || coupon.assigned_to !== user.id) {
+          return new Response(
+            JSON.stringify({ error: 'This coupon is assigned to a specific account. Please sign in.' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       }
 
       if (coupon.max_uses !== null && Number(coupon.used_count) >= Number(coupon.max_uses)) {
@@ -300,6 +303,13 @@ Deno.serve(async (req: Request) => {
     let loyaltyDiscount = 0;
 
     if (loyaltyRedeemPoints > 0) {
+      if (!user) {
+        return new Response(
+          JSON.stringify({ error: 'Please sign in to redeem loyalty points.' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const { data: profile } = await adminClient
         .from('profiles')
         .select('loyalty_points')
@@ -347,7 +357,7 @@ Deno.serve(async (req: Request) => {
       .from('online_orders')
       .insert({
         id: orderId,
-        customer_id: user.id,
+        customer_id: user ? user.id : null,
         customer: {
           name: customerName,
           phone: customerPhone,
